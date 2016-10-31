@@ -5,9 +5,9 @@ var
 
 
 var amendSources = function(sources) {
-  if (process.env.NODE_ENV !== 'production') {
-    sources.unshift('webpack/hot/only-dev-server');
-  }
+  //if (process.env.NODE_ENV !== 'production') {
+  //  sources.unshift('webpack/hot/only-dev-server');
+  //}
 
   return sources
 }
@@ -24,6 +24,7 @@ module.exports = {
         loaders: [
             {test: /\.jsx?$/,                   loaders: ['react-hot', 'babel'], exclude: /node_modules/ },
             {test: /\.js$/,                     loader:  'babel-loader', exclude: /node_modules/ },
+            {test: /\.js$/,                     loader:  'babel-loader', include: /node_modules\/react-hotkeys/ },
             {test: /\.css$/,                    loader:  ExtractTextPlugin.extract('style', 'css-loader') },
             {test: /\.s[ca]ss$/,                loader:  ExtractTextPlugin.extract('style', 'css-loader!sass-loader') },
             {test: /\.(woff|woff2)$/,           loader:  'url-loader?limit=100000' },
