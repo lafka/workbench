@@ -39,14 +39,14 @@ export class Index extends React.Component {
 
   render() {
     let
-      {location} = this.props,
+      {location, history} = this.props,
       {auth} = location.query
 
     console.log('render', 'pages/Index', window.location.hash)
 
     return (
       <div className="page index">
-         <TopRow auth={auth} notify={this._notify} />
+         <TopRow auth={auth} notify={this._notify} history={history} />
          <Grid>
             <MainFeatures />
 
@@ -126,7 +126,7 @@ const TopRow = (props) => {
                   <Col sm={6}><IntroCopy /></Col>
                   <Col sm={6}>
                      <div style={{display: 'register' !== props.auth ? 'inherit' : 'none'}}>
-                        <Login notify={props.notify} />
+                        <Login notify={props.notify} redirect="/dashboard" history={props.history} />
                         <p>
                            <Link to={{path: "/", query: {auth: "register"}}}>
                               Don't have an account? sign up now!
@@ -135,7 +135,7 @@ const TopRow = (props) => {
                      </div>
 
                      <div style={{display: 'register' === props.auth ? 'inherit' : 'none'}}>
-                        <Register notify={props.notify} />
+                        <Register notify={props.notify} redirect="/dashboard" history={props.history} />
                         <p>
                            <Link to={{path: "/", query: {auth: "login"}}}>
                               Already have an account? sign in!

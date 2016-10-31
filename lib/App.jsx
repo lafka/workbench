@@ -1,14 +1,20 @@
 import React from 'react'
-import Router from 'react-router'
-import {Route, RouteHandler, IndexRoute} from 'react-router'
+import ReactDOM from 'react-dom'
+import {Router, Route, RouteHandler, IndexRoute, hashHistory} from 'react-router'
+import {IntlProvider} from 'react-intl'
 
-import {About, User, Dashboard, Landing, NotFound} from './components'
-import {RequireAuth, Loading} from './ui'
+import {Authenticate, requireAuth, About, User, Dashboard} from './components'
+import {Loading} from './ui'
+
+import {NotFound} from './pages/NotFound.jsx'
+import {Index} from './pages/Index.jsx'
 
 import {AuthStore, AuthService, AuthConstants} from './Auth'
 import AppDispatcher from './AppDispatcher'
 
 import {ErrorModal} from './ErrorModal.jsx'
+
+import {Logout} from './bundle/auth'
 
 import './style/app.scss'
 
@@ -18,6 +24,11 @@ let auth = localStorage.getItem('auth')
 
 
 let haveAuthentication = false // this is outside of flux dispatcher
+
+// new stuff
+import {Layout} from './ui'
+import {SessionStorage} from './storage'
+
 
 export default class App extends React.Component {
   constructor(props) {
@@ -42,20 +53,20 @@ export default class App extends React.Component {
                  .catch(() => this.setState({loading: false}))
 
     // refresh on user:(login,logout)
-    AppDispatcher.register( (action) => {
-      switch (action.actionType) {
-        case AuthConstants.Actions.logout:
-          haveAuthentication = true
-          break
+    //AppDispatcher.register( (action) => {
+    //  switch (action.actionType) {
+    //    case AuthConstants.Actions.logout:
+    //      haveAuthentication = true
+    //      break
 
-        case AuthConstants.Actions.logout:
-          this.props.history.pushState(null, '/?logout=' + action.reason);
-          break
+    //    case AuthConstants.Actions.logout:
+    //      this.props.history.pushState(null, '/?logout=' + action.reason);
+    //      break
 
-        default:
-          break
-      }
-    })
+    //    default:
+    //      break
+    //  }
+    //})
   }
 
   handleThrownErrors(msg, file, line, col, err) {
@@ -84,10 +95,10 @@ export default class App extends React.Component {
 
     return (
       <Loading loading={loading} text="Waiting for authentication reply from server">
-        <div>
-          <ErrorModal onHide={this.clearError} error={error} />
-          {this.props.children}
-        </div>
+         <Layout routes={this.props.routes}>
+            <ErrorModal onHide={this.clearError} error={error} />
+            <SessionStorage valid={false}>{this.props.children}</SessionStorage>
+         </Layout>
       </Loading>
     )
   }
@@ -99,31 +110,66 @@ export default class App extends React.Component {
 //      <Route path="getting-started" component={ NotFound }  glyph="flash"     linkText="Getting Started" />
 //      <Route path="help"            component={ NotFound }  glyph="education" linkText="Help & Support" />
 //
-React.render((
-  <Router>
-    <Route path="/" component={ App }>
 
-      <IndexRoute component={ Landing } />
+ReactDOM.render( (
+  <IntlProvider locale="en">
+    <Router history={hashHistory}>
+      <Route path="/" component={ App }>
 
-      <Route path="dashboard"
-        component={ RequireAuth(Dashboard) }
-        indexRoute={Dashboard.childRoutes[0]}
-        childRoutes={Dashboard.childRoutes}
-        glyph="home"
-        linkText="Dashboard" />
+        <IndexRoute component={ Index } />
 
-      <Route
-        path="user"
-        component={ RequireAuth(User) }
-        linkText="User Account"
-        glyph="user"
-        hide={true}
-        indexRoute={User.childRoutes[0]}
-        childRoutes={User.childRoutes} />
+        <Route path="auth"
+          name="Authenticate"
+          component={ Authenticate }
+          />
 
-      <Route path="about" component={ About } />
+        <Route
+          navigate={true}
+          path="dashboard"
+          name="Dashboard"
+          component={ Dashboard }
+          onEnter={ requireAuth }
+          indexRoute={Dashboard.childRoutes[0]}
+          childRoutes={Dashboard.childRoutes}
+          glyph="home"
+          linkText="Dashboard" />
 
-      <Route path="*" component={ NotFound } />
-    </Route>
-  </Router>
+        <Route
+          navigate={true}
+          name="Documentation"
+          path="docs"
+          component={ NotFound }
+          linkText="Documentation"
+          glyph="info-sign" />
+
+        <Route
+          navigate={true}
+          name="Support"
+          path="docs"
+          component={ NotFound }
+          linkText="Support"
+          glyph="question-sign" />
+
+        <Route
+          name="User"
+          path="user"
+          component={ User }
+          onEnter={ requireAuth }
+          linkText="User Account"
+          glyph="user"
+          hide={true}
+          indexRoute={User.childRoutes[0]}
+          childRoutes={User.childRoutes} />
+
+        <Route
+          path="auth/logout"
+          component={ Logout }
+          hide={true} />
+
+        <Route path="about" component={ About } />
+
+        <Route path="*" component={ NotFound } />
+      </Route>
+    </Router>
+  </IntlProvider>
   ), document.getElementById("react") )

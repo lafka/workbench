@@ -5,7 +5,7 @@ import {AuthStore} from '../Auth'
 export class SessionStorage extends React.Component {
    constructor() {
       super()
-      this.state = {session: null}
+      this.state = {session: AuthStore.auth}
    }
 
    componentWillMount() {
@@ -27,8 +27,9 @@ export class SessionStorage extends React.Component {
             resolved: AuthStore.haveAuthentication()
          }
 
-      return false === valid
-         ? null
-         : React.cloneElement(this.props.children, props)
+      if (session || valid === false)
+         return React.cloneElement(this.props.children, props)
+      else
+         return null
    }
 }
