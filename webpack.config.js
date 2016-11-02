@@ -1,7 +1,8 @@
 var
   webpack = require('webpack'),
   ExtractTextPlugin = require("extract-text-webpack-plugin"),
-  WebpackNotifierPlugin = require('webpack-notifier')
+  WebpackNotifierPlugin = require('webpack-notifier'),
+  path = require('path')
 
 
 var amendSources = function(sources) {
@@ -13,17 +14,28 @@ var amendSources = function(sources) {
 }
 
 module.exports = {
-    entry: amendSources(["./lib/App.jsx"]).concat('bootstrap-sass!./lib/style/bootstrap-sass.config.js'),
+    context: path.join(__dirname, './lib'),
+    entry: {
+      vendor: [ 'lodash',
+                'react',
+                'react-dom',
+                'react-bootstrap',
+                'react-router',
+                'bootstrap-sass!./style/bootstrap-sass.config.js',
+               ],
+      app: ['./App.jsx'],
+      auth: ['./bundle/auth/index.js'],
+      dashboard: ['./bundle/dashboard/index.js'],
+    },
 
     output: {
-        path: __dirname + '/dist',
-        filename: "dist/bundle.js"
+        path: __dirname,
+        filename: "dist/[name].js"
     },
 
     module: {
         loaders: [
-            {test: /\.jsx?$/,                   loaders: ['react-hot', 'babel'], exclude: /node_modules/ },
-            {test: /\.js$/,                     loader:  'babel-loader', exclude: /node_modules/ },
+            {test: /\.jsx?$/,                   loaders: ['babel?cacheDirectory=true'], exclude: /node_modules/ },
             {test: /\.js$/,                     loader:  'babel-loader', include: /node_modules\/react-hotkeys/ },
             {test: /\.css$/,                    loader:  ExtractTextPlugin.extract('style', 'css-loader') },
             {test: /\.s[ca]ss$/,                loader:  ExtractTextPlugin.extract('style', 'css-loader!sass-loader') },
@@ -35,9 +47,22 @@ module.exports = {
         ]
     },
 
+    resolve: {
+      extensions: ['', '.js', '.jsx'],
+      modules: [
+         path.resolve('./lib'),
+         'node_modules',
+      ]
+    },
+
     extensions: ['.jsx', '.js'],
 
     plugins: [
+      new webpack.optimize.CommonsChunkPlugin({
+         name: 'vendor',
+         //minChunks: Infinity,
+         filename: 'dist/vendor.bundle.js',
+      }),
       new webpack.NoErrorsPlugin(),
       new WebpackNotifierPlugin(),
       new ExtractTextPlugin("dist/bundle.css")

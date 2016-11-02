@@ -1,5 +1,5 @@
 import React from 'react'
-import {BASE_URL} from './Constants'
+import Constants from './Constants'
 import {AuthStore} from './Auth'
 
 import {EventEmitter} from 'events'
@@ -9,7 +9,7 @@ export class StreamEmitter extends EventEmitter {
     super()
     console.log('stream/open', spec)
 
-    let url = BASE_URL + "/stream?query=" + window.encodeURI(spec) + "&accept=*/*"
+    let url = Constants.BASE_URL + "/stream?query=" + window.encodeURI(spec) + "&accept=*/*"
     let sig = AuthStore.signV1("GET", url, "")
 
     url += "&authorization=" + sig

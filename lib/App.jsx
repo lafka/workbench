@@ -3,7 +3,9 @@ import ReactDOM from 'react-dom'
 import {Router, Route, RouteHandler, IndexRoute, hashHistory} from 'react-router'
 import {IntlProvider} from 'react-intl'
 
-import {Authenticate, requireAuth, About, User, Dashboard} from './components'
+import _ from 'lodash'
+
+import {Authenticate, requireAuth, About, User} from './components'
 import {Loading} from './ui'
 
 import {NotFound} from './pages/NotFound.jsx'
@@ -14,16 +16,7 @@ import AppDispatcher from './AppDispatcher'
 
 import {ErrorModal} from './ErrorModal.jsx'
 
-import {Logout} from './bundle/auth'
-
-import './style/app.scss'
-
-import _ from 'lodash'
-
 let auth = localStorage.getItem('auth')
-
-
-let haveAuthentication = false // this is outside of flux dispatcher
 
 // new stuff
 import {Layout} from './ui'
@@ -51,22 +44,6 @@ export default class App extends React.Component {
       AuthService.validate(JSON.parse(auth))
                  .then(() => this.setState({loading: false}))
                  .catch(() => this.setState({loading: false}))
-
-    // refresh on user:(login,logout)
-    //AppDispatcher.register( (action) => {
-    //  switch (action.actionType) {
-    //    case AuthConstants.Actions.logout:
-    //      haveAuthentication = true
-    //      break
-
-    //    case AuthConstants.Actions.logout:
-    //      this.props.history.pushState(null, '/?logout=' + action.reason);
-    //      break
-
-    //    default:
-    //      break
-    //  }
-    //})
   }
 
   handleThrownErrors(msg, file, line, col, err) {
@@ -109,7 +86,59 @@ export default class App extends React.Component {
 //      <Route path="operations"      component={ NotFound }  glyph="scale"     linkText="Operations" />
 //      <Route path="getting-started" component={ NotFound }  glyph="flash"     linkText="Getting Started" />
 //      <Route path="help"            component={ NotFound }  glyph="education" linkText="Help & Support" />
-//
+
+const loadScript = function(url, callback) {
+   let script = document.createElement("script")
+   script.type = "text/javascript"
+
+   if (script.readyState)
+      script.onreadystatechange = function() {
+         if (script.readyState == "loaded" || script.readyState == "complete") {
+            script.onreadystatechange = null
+            callback(script)
+         }
+      }
+   else
+      script.onload = function() {
+         callback(script)
+      }
+
+   script.src = url
+   document.getElementsByTagName("head")[0].appendChild(script)
+}
+
+const asyncComponent = function(bundle, module) {
+   let
+      name = bundle
+               .replace(/^\.\/dist\//, '')
+               .replace(/\.js$/, ''),
+      req = './bundle/' + name + '/index'
+
+   return (location, callback) => {
+      try {
+         callback(null, require(req)[module])
+      } catch (e) {
+         loadScript(bundle, () => {
+            callback(null, require(req)[module])
+         })
+      }
+   }
+}
+
+const asyncRoutes = function(bundle, module, nth) {
+   return (location, callback) =>
+      asyncComponent(bundle, module)(location, (_x, component) => {
+         if (!component.childRoutes)
+            callback(null, [])
+
+         if (undefined === nth)
+            callback(null, component.childRoutes)
+         else
+            callback(null, component.childRoutes[nth])
+      })
+}
+
+const A = (props) => <div>I AM A DIV</div>
 
 ReactDOM.render( (
   <IntlProvider locale="en">
@@ -127,10 +156,10 @@ ReactDOM.render( (
           navigate={true}
           path="dashboard"
           name="Dashboard"
-          component={ Dashboard }
+          getComponent={asyncComponent('./dist/dashboard.js', 'Dashboard')}
+          getChildRoutes={asyncRoutes('./dist/dashboard.js', 'Dashboard')}
+          getIndexRoute={asyncRoutes('./dist/dashboard.js', 'Dashboard', 0)}
           onEnter={ requireAuth }
-          indexRoute={Dashboard.childRoutes[0]}
-          childRoutes={Dashboard.childRoutes}
           glyph="home"
           linkText="Dashboard" />
 
@@ -163,7 +192,7 @@ ReactDOM.render( (
 
         <Route
           path="auth/logout"
-          component={ Logout }
+          getComponent={asyncComponent('bundle/auth/index.js', 'Logout')}
           hide={true} />
 
         <Route path="about" component={ About } />
