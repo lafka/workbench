@@ -1,6 +1,4 @@
 import React from 'react'
-import Mixin from 'react-mixin'
-import {LensedStateDefaultMixin} from '../../mixin'
 
 import {PageHeader, Grid, Row, Col} from 'react-bootstrap'
 import {Input, Button, ButtonToolbar, Alert} from 'react-bootstrap'
@@ -10,11 +8,10 @@ import {Loading} from '../../ui'
 import {UserService, UserStore} from '../../User'
 
 export class Account extends React.Component {
-  constructor() {
+  constructor(props) {
     super()
 
     this.state = {
-      user: UserStore.user || {},
       patch: {},
       password_confirm: '',
       notify: null
@@ -23,17 +20,11 @@ export class Account extends React.Component {
 
   componentWillMount() {
     this._mounted = true
-    UserStore.addChangeListener( this._changeListener = () => {
-      if (this._mounted)
-        this.setState({user: UserStore.user})
-    })
-
     UserService.fetch()
   }
 
   componentWillUnmount() {
     this._mounted = false
-    UserStore.removeChangeListener(this._changeListener)
   }
 
   dismissNotification() {
@@ -115,18 +106,24 @@ export class Account extends React.Component {
   }
 
   render() {
+    let {user} = this.props
+
+      console.log('user/ex', _.eq({}, user), user)
+
+    if (!user)
+      user = {}
+
     return (
       <div>
         {this.state.notify || <Alert key="placeholder" bsStyle="inline">&nbsp;</Alert>}
 
         <PageHeader>Account Settings</PageHeader>
-        <Loading loading={null === this.state.user}>
+        <Loading loading={_.eq({}, user)}>
           <form onSubmit={(ev) => this.handleSubmit(ev)}>
-          <Grid className="no-margin">
             <Row>
               <Col xs={12} sm={6}>
                 <Input
-                  value={this.state.user.email}
+                  value={user.email}
                   type="text"
                   label="Email"
                   placeholder="your@email-address.com"
@@ -136,22 +133,24 @@ export class Account extends React.Component {
               <Col xs={12} sm={6}>
                 <Input
                   type="text"
-                  valueLink={this.linkState('patch.name', this.state.user.name)}
+                  value={user.name || ""}
                   bsStyle={this.nameValidationState()[0]}
                   help={this.nameValidationState()[1] || ' '}
                   label="Name"
                   placeholder="Full name"
+                  disabled
                   />
               </Col>
 
               <Col xs={12} sm={6}>
                 <Input
                   type="tel"
-                  valueLink={this.linkState('patch.phone', this.state.user.phone)}
+                  value={user.phone || ""}
                   bsStyle={this.phoneValidationState()[0]}
                   help={this.phoneValidationState()[1] || ' '}
                   label="Phone Number"
                   placeholder="+47 123 45 678"
+                  disabled
                   />
               </Col>
             </Row>
@@ -163,10 +162,11 @@ export class Account extends React.Component {
                 <Input
                   type="password"
                   label="New Password"
-                  valueLink={this.linkState('patch.password')}
+                  value={this.state.patch.password}
                   bsStyle={this.passwordValidationState()[0]}
                   help={this.passwordValidationState()[2] || ' '}
                   placeholder="..."
+                  disabled
                   />
               </Col>
 
@@ -174,14 +174,15 @@ export class Account extends React.Component {
                 <Input
                   type="password"
                   label="Confirm Password"
-                  valueLink={this.linkState('password_confirm')}
+                  value={this.state.patch.password_confirm}
                   bsStyle={this.passwordValidationState()[1]}
                   placeholder="..."
+                  disabled
                   />
               </Col>
             </Row>
 
-            <Row>
+            <Row style={{marginBottom: '20px'}}>
               <Col xs={12}>
                 <ButtonToolbar >
                   <Button type="submit" bsStyle="warning" className="pull-right" onClick={(ev) => this.handleSubmit(ev)}>Update Account</Button>
@@ -189,18 +190,9 @@ export class Account extends React.Component {
                 </ButtonToolbar>
               </Col>
             </Row>
-
-          </Grid>
           </form>
         </Loading>
       </div>
     )
   }
 }
-
-Mixin(Account.prototype, LensedStateDefaultMixin)
-
-// email
-// password
-// name
-// phone

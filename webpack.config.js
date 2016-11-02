@@ -26,6 +26,7 @@ module.exports = {
       app: ['./App.jsx'],
       auth: ['./bundle/auth/index.js'],
       dashboard: ['./bundle/dashboard/index.js'],
+      user: [ './bundle/user/index.js' ],
     },
 
     output: {

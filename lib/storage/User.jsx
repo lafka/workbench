@@ -12,7 +12,7 @@ export class UserStorage extends React.Component {
       this._mounted = true
 
       UserStore.addChangeListener( this._listener = () =>
-         this._mounted && this.setState({user: UserStore.auth || null})
+         this._mounted && this.setState({user: UserStore.user || null})
       )
    }
 
@@ -24,11 +24,9 @@ export class UserStorage extends React.Component {
    render() {
       let
          {user} = this.state,
-         props = {
-            user: user
-         }
+         {children, ...props} = this.props
 
-      return React.cloneElement(this.props.children, props)
+      return React.cloneElement(this.props.children, _.assign({}, props, {user: user}))
    }
 }
 

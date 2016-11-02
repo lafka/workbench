@@ -182,13 +182,13 @@ ReactDOM.render( (
         <Route
           name="User"
           path="user"
-          component={ User }
           onEnter={ requireAuth }
           linkText="User Account"
           glyph="user"
           hide={true}
-          indexRoute={User.childRoutes[0]}
-          childRoutes={User.childRoutes} />
+          getComponent={asyncComponent('./dist/user.js', 'User')}
+          getChildRoutes={asyncRoutes('./dist/user.js', 'User')}
+          getIndexRoute={asyncRoutes('./dist/user.js', 'User', 0)} />
 
         <Route
           path="auth/logout"
