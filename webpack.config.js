@@ -14,24 +14,30 @@ var amendSources = function(sources) {
 }
 
 module.exports = {
+    devtool: 'source-map',
     context: path.join(__dirname, './lib'),
+    target: 'web',
     entry: {
       vendor: [ 'lodash',
                 'react',
                 'react-dom',
                 'react-bootstrap',
                 'react-router',
+                'react-router-bootstrap',
+                'react-intl',
+                'moment',
                 'bootstrap-sass!./style/bootstrap-sass.config.js',
                ],
-      app: ['./App.jsx'],
-      auth: ['./bundle/auth/index.js'],
-      dashboard: ['./bundle/dashboard/index.js'],
-      user: [ './bundle/user/index.js' ],
+//      auth: ['./bundle/auth/index.js'],
+//      dashboard: ['./bundle/dashboard/index.js'],
+//      user: ['./bundle/user/index.js'],
+      app: './App.jsx',
     },
 
     output: {
-        path: __dirname,
-        filename: "dist/[name].js"
+        path: __dirname + '/dist',
+        filename: "dist/[name].js",
+		  chunkFilename: "dist/[id].chunk.js",
     },
 
     module: {
@@ -66,7 +72,6 @@ module.exports = {
       }),
       new webpack.NoErrorsPlugin(),
       new WebpackNotifierPlugin(),
-      new ExtractTextPlugin("dist/bundle.css")
+      new ExtractTextPlugin("bundle.css")
     ]
-
 }

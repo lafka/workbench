@@ -22,6 +22,13 @@ let auth = localStorage.getItem('auth')
 import {Layout} from './ui'
 import {SessionStorage} from './storage'
 
+// use bluebird promises for improved error handling!
+import Bluebird from 'bluebird'
+window.Promise = Bluebird
+//window.require = require
+
+console.log(require('./style/app.scss'))
+
 
 export default class App extends React.Component {
   constructor(props) {
@@ -42,8 +49,7 @@ export default class App extends React.Component {
 
     if (auth)
       AuthService.validate(JSON.parse(auth))
-                 .then(() => this.setState({loading: false}))
-                 .catch(() => this.setState({loading: false}))
+         .done( () => this.setState({loading: false}) )
   }
 
   handleThrownErrors(msg, file, line, col, err) {
@@ -80,65 +86,6 @@ export default class App extends React.Component {
     )
   }
 }
-//
-//      <Route path="organizations"   component={ NotFound }  glyph="user"      linkText="Organizations" />
-//      <Route path="applications"    component={ NotFound }  glyph="book"      linkText="Applications" />
-//      <Route path="operations"      component={ NotFound }  glyph="scale"     linkText="Operations" />
-//      <Route path="getting-started" component={ NotFound }  glyph="flash"     linkText="Getting Started" />
-//      <Route path="help"            component={ NotFound }  glyph="education" linkText="Help & Support" />
-
-const loadScript = function(url, callback) {
-   let script = document.createElement("script")
-   script.type = "text/javascript"
-
-   if (script.readyState)
-      script.onreadystatechange = function() {
-         if (script.readyState == "loaded" || script.readyState == "complete") {
-            script.onreadystatechange = null
-            callback(script)
-         }
-      }
-   else
-      script.onload = function() {
-         callback(script)
-      }
-
-   script.src = url
-   document.getElementsByTagName("head")[0].appendChild(script)
-}
-
-const asyncComponent = function(bundle, module) {
-   let
-      name = bundle
-               .replace(/^\.\/dist\//, '')
-               .replace(/\.js$/, ''),
-      req = './bundle/' + name + '/index'
-
-   return (location, callback) => {
-      try {
-         callback(null, require(req)[module])
-      } catch (e) {
-         loadScript(bundle, () => {
-            callback(null, require(req)[module])
-         })
-      }
-   }
-}
-
-const asyncRoutes = function(bundle, module, nth) {
-   return (location, callback) =>
-      asyncComponent(bundle, module)(location, (_x, component) => {
-         if (!component.childRoutes)
-            callback(null, [])
-
-         if (undefined === nth)
-            callback(null, component.childRoutes)
-         else
-            callback(null, component.childRoutes[nth])
-      })
-}
-
-const A = (props) => <div>I AM A DIV</div>
 
 ReactDOM.render( (
   <IntlProvider locale="en">
@@ -156,12 +103,12 @@ ReactDOM.render( (
           navigate={true}
           path="dashboard"
           name="Dashboard"
-          getComponent={asyncComponent('./dist/dashboard.js', 'Dashboard')}
-          getChildRoutes={asyncRoutes('./dist/dashboard.js', 'Dashboard')}
-          getIndexRoute={asyncRoutes('./dist/dashboard.js', 'Dashboard', 0)}
           onEnter={ requireAuth }
           glyph="home"
-          linkText="Dashboard" />
+          linkText="Dashboard"
+          getComponent={(loc, callback) => callback(null, require('./bundle/dashboard/index').Dashboard)}
+          getChildRoutes={(loc, callback) => callback(null, require('./bundle/dashboard/index').Dashboard.childRoutes)}
+          getIndexRoute={(loc, callback) => callback(null, require('./bundle/dashboard/index').Dashboard.childRoutes[0])} />
 
         <Route
           navigate={true}
@@ -186,19 +133,20 @@ ReactDOM.render( (
           linkText="User Account"
           glyph="user"
           hide={true}
-          getComponent={asyncComponent('./dist/user.js', 'User')}
-          getChildRoutes={asyncRoutes('./dist/user.js', 'User')}
-          getIndexRoute={asyncRoutes('./dist/user.js', 'User', 0)} />
+          getComponent={(loc, callback) => callback(null, require('./bundle/user/index').User)}
+          getChildRoutes={(loc, callback) => callback(null, require('./bundle/user/index').User.childRoutes)}
+          getIndexRoute={(loc, callback) => callback(null, require('./bundle/user/index').User.childRoutes[0])} />
 
         <Route
           path="auth/logout"
-          getComponent={asyncComponent('bundle/auth/index.js', 'Logout')}
-          hide={true} />
-
-        <Route path="about" component={ About } />
+          hide={true}
+          getComponent={(loc, callback) => callback(null, require('./bundle/auth/index').Logout)}
+          getChildRoutes={(loc, callback) => callback(null, require('./bundle/auth/index').Logout.childRoutes)}
+          getIndexRoute={(loc, callback) => callback(null, require('./bundle/auth/index').Logout.childRoutes[0])} />
 
         <Route path="*" component={ NotFound } />
       </Route>
     </Router>
   </IntlProvider>
   ), document.getElementById("react") )
+

@@ -1,7 +1,8 @@
 import ReactDOM from 'react-dom';
 import React from 'react';
 
-import Typeahead from 'react-typeahead-component'
+//import Typeahead from 'react-typeahead-component'
+let Typeahead = {}
 import { EventEmitter } from 'events'
 
 import _ from 'lodash'

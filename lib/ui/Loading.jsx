@@ -24,15 +24,26 @@ export class Loading extends React.Component {
     }
 
     let
-      loader = this.refs.loader.getDOMNode(),
+      loader = this.refs.loader,
       boundryBottom = document.body.getBoundingClientRect().bottom
 
 
     //loader.style.marginTop = Math.round(top / 2) + 'px'
     //loader.style.marginLeft = Math.round(left / 2) + 'px'
 
-    loader.style.marginTop = (((boundryBottom - loader.parentElement.getClientRects()[0].top) / 2) - 30) + "px"
-    loader.style.marginLeft = ((loader.parentElement.getClientRects()[0].width / 2) - 30) + "px"
+      loader.style.marginTop = (((boundryBottom - loader.parentElement.getClientRects()[0].top) / 2) - 30) + "px"
+      loader.style.marginLeft = ((loader.parentElement.getClientRects()[0].width / 2) - 30) + "px"
+  }
+
+  componentWillReceiveProps(next) {
+    if (!this.refs.loader) {
+      return
+    }
+
+    if (!next.loading) {
+      this.refs.loader.style.marginTop = 'inherit'
+      this.refs.loader.style.marginLeft = 'inherit'
+    }
   }
 
   render() {

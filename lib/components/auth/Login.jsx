@@ -18,7 +18,12 @@ export class Login extends React.Component {
       this.updatePw = this.updatePw.bind(this)
    }
 
+   componentWillMount() {
+      this._mounted = true
+   }
+
    componentWillUnmount() {
+      this._mounted = false
       this.setState({password: ""})
    }
 
@@ -61,9 +66,13 @@ export class Login extends React.Component {
             this.setState({loading: false})
          } )
          .then( (_resp) => {
-             this.setState({loading: false}) 
+             this._mounted && this.setState({loading: false})
 
-             console.log(this.props)
+             if (!this.props.history) {
+               console.log('Login: missing history component, can\'t redirect')
+               return
+             }
+
              if (this.props.redirect)
                this.props.history.replace(this.props.redirect)
          })

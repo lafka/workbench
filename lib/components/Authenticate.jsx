@@ -1,6 +1,5 @@
 import React from 'react'
 import {routerShape} from 'react-router'
-import BodyClass from 'react-body-classname'
 
 import {Grid, Row, Col, Alert} from 'react-bootstrap'
 import {Link} from 'react-router'
@@ -119,7 +118,7 @@ export class Authenticate extends React.Component {
                 <Notify store={this._notify} />
 
                 <Box.Content>
-                  <Login notify={this._notify} />
+                  <Login notify={this._notify} history={this.props.history} />
                   <Link to={{pathname: route.path, query: {auth: 'register'}}}>Don't have an account? Sign up!</Link>
                 </Box.Content>
 

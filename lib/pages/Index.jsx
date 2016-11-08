@@ -13,8 +13,6 @@ import {AuthStore} from '../Auth'
 //
 //import {Login, Register} from '../components/auth'
 //
-//import BodyClass from 'react-body-classname'
-//
 ////import {Grid, Row, Col, Navbar, Nav, NavItem} from 'react-bootstrap'
 //import {Button, Input, Alert} from 'react-bootstrap'
 //

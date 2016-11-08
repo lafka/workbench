@@ -1,10 +1,10 @@
 import React from 'react';
-import Mixin from 'react-mixin';
 
 export default class Expire extends React.Component {
-  static getInitialState() {
-    return {
-      visible: true
+  constructor() {
+    super()
+    this.state = {
+     visible: true
     }
   }
 
@@ -41,8 +41,3 @@ export default class Expire extends React.Component {
     return this.state.visible ? <div>{this.props.children}</div> : <span />
   }
 }
-
-Mixin.onClass(Expire, {
-  getInitialState: Expire.getInitialState,
-})
-

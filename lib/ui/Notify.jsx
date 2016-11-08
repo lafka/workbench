@@ -36,13 +36,13 @@ export class NotifyStore extends EventEmitter {
     return this._notifications
   }
 
-  get clear() {
-    this._notifications = []
-    this.emitChange()
-  }
-
   get length() {
     return this._notifications.length
+  }
+
+  clear() {
+    this._notifications = []
+    this.emitChange()
   }
 
   remove(ref) {

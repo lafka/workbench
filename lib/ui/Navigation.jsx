@@ -88,6 +88,8 @@ export class Navigation extends React.Component {
           </a>
         </li>
 
+        <li className="suffix pull-right">|</li>
+
         <li className="suffix pull-right">
           <Link to="/user">
             <Glyphicon glyph="envelope">&nbsp;</Glyphicon>
