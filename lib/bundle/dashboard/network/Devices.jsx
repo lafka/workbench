@@ -199,16 +199,19 @@ class DeviceTable extends React.Component {
       })
    }
 
-   _onUpdateFacets(field, values) {
+   _onUpdateFacets(...rest) {
       let
          {devices} = this.props,
          {facets, lastSort, colSortDirs} = this.state,
          sortDir = colSortDirs[lastSort]
 
-      facets[field] = values
+      facets = _.reduce( _.chunk(rest, 2), (acc, [k, v]) => _.set(acc, k, v), {})
 
       function applyFilter(obj, val, key) {
          // use weak comparison to allow 1.45 == "1.45" -> true
+         if (!val)
+            return false
+
          return val.length === 0 || _.some(val, (v) => v == _.get(obj, key))
       }
 
@@ -382,6 +385,11 @@ const provisioning = [{label: 'Active', value: 'active'},
 const toOptions = values => _.isArray(values) ? _.map(values, (v) => ({label: v, value: v})) : []
 
 const Sidebar = ({network, devices, facets, computedFacets, updateFacets}) => {
+   let
+      pick = _.omit(facets, 'type', 'provisioned', 'proto/tm.firmware', 'proto/tm.hardware', 'proto/tm.part'),
+      omitted = _.pick(facets, 'type', 'provisioned', 'proto/tm.firmware', 'proto/tm.hardware', 'proto/tm.part'),
+      remainingValues = _.map(_.pairs(pick), ([a, b]) => a + "  == " + b),
+      rest = (field) => _.flatten(_.pairs(_.omit(facets, field)))
 
    return (<div>
       <h5>Filter by device type</h5>
@@ -390,7 +398,7 @@ const Sidebar = ({network, devices, facets, computedFacets, updateFacets}) => {
          simpleValue
          placeholder="Filter by device type"
          value={(facets.type || []).join(',')}
-         onChange={(values) => updateFacets('type', _.filter(values.split(',')))}
+         onChange={(values) => updateFacets.apply(this, ['type', _.filter(values.split(','))].concat(rest('type')))}
          options={mapTypes(network, 'types')} />
 
       <hr />
@@ -401,7 +409,7 @@ const Sidebar = ({network, devices, facets, computedFacets, updateFacets}) => {
          simpleValue
          placeholder="Filter by provisioning"
          value={(facets.provisioned || []).join(',')}
-         onChange={(values) => updateFacets('provisioned', _.filter(values.split(',')))}
+         onChange={(values) => updateFacets.apply(this, ['provisioned', _.filter(values.split(','))].concat(rest('provisioned')))}
          options={provisioning} />
 
       <hr />
@@ -412,7 +420,7 @@ const Sidebar = ({network, devices, facets, computedFacets, updateFacets}) => {
          simpleValue
          placeholder="Filter by Firmware"
          value={(facets['proto/tm.firmware'] || []).join(',')}
-         onChange={(values) => updateFacets('proto/tm.firmware', _.filter(values.split(',')))}
+         onChange={(values) => updateFacets.apply(this, ['proto/tm.firmware', _.filter(values.split(','))].concat(rest('proto/tm.firmware')))}
          options={toOptions(computedFacets['proto/tm.firmware'])} />
 
       <hr />
@@ -423,7 +431,7 @@ const Sidebar = ({network, devices, facets, computedFacets, updateFacets}) => {
          simpleValue
          placeholder="Filter by Hardware"
          value={(facets['proto/tm.hardware'] || []).join(',')}
-         onChange={(values) => updateFacets('proto/tm.hardware', _.filter(values.split(',')))}
+         onChange={(values) => updateFacets.apply(this, ['proto/tm.hardware', _.filter(values.split(','))].concat(rest('proto/tm.hardware')))}
          options={toOptions(computedFacets['proto/tm.hardware'])} />
 
       <hr />
@@ -434,11 +442,40 @@ const Sidebar = ({network, devices, facets, computedFacets, updateFacets}) => {
          simpleValue
          placeholder="Filter by Part #"
          value={(facets['proto/tm.part'] || []).join(',')}
-         onChange={(values) => updateFacets('proto/tm.part', _.filter(values.split(',')))}
+         onChange={(values) => updateFacets.apply(this, ['proto/tm.part', _.filter(values.split(','))].concat(rest('proto/tm.part')))}
          options={toOptions(computedFacets['proto/tm.part'])} />
 
       <hr />
+
+      <Select.Creatable
+         multi
+         simpleValue
+         value={remainingValues.join(',')}
+         onChange={(values) => updateFacets.apply(this, facetValues(values, omitted))}
+         isValidNewOption={ ({label}) => label && label.match(/([^\s=]*)\s*?==\s*?([^\s=]+)$/) }
+         newOptionCreator={ newFacetOption }
+         options={toOptions(remainingValues)} />
    </div>)}
+
+const facetValues = (values, pick) =>
+   _.chain(values.split(','))
+      .filter()
+      .map((e) => e.split(/\s?==\s?/))
+      .reduce( function(acc, [k, v]) { k = k.replace(/\s/, ''); return _.set(acc, k, (acc[k] || []).concat(v)) }, {})
+      .merge(pick || {})
+      .pairs()
+      .flatten()
+      .value()
+
+function newFacetOption({label, labelKey, valueKey}) {
+   let option = {}
+
+   option[valueKey] = label
+   option[labelKey] = label
+   option.className = "custom"
+
+   return option
+}
 
 DeviceManagement.sidebar = true //({params, ...props}) =>
 //   <DevicesStorage nid={params.nid}>
