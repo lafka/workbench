@@ -10,6 +10,7 @@ import {Table, Column, Cell} from 'fixed-data-table'
 
 import {NetworkStorage} from '../../../storage'
 import {DevicesStorage, DeviceStorage} from '../../../storage'
+import {LayoutStore} from '../../../stores'
 
 export const DeviceManagement = ({params, ...props}) =>
    <div>
@@ -88,13 +89,36 @@ class DeviceTable extends React.Component {
             { field: 'meta.event/key',         name: 'Last Event',         cell:  <LinkCell />,          visible: false, link: msgLink },
             { field: 'provisioned',            name: 'Provisioned',        cell:  <ToggleFacetCell />,   visible: false, link },
          ],
-         dimensions: {width: 0, height: 0}
+         dimensions: {width: -1, height: -1}
       }
 
       this._onSortChange = this._onSortChange.bind(this)
       this._onFacetChange = this._onFacetChange.bind(this)
       this._onUpdateFacets = this._onUpdateFacets.bind(this)
       this._onToggleColumn = this._onToggleColumn.bind(this)
+   }
+
+   componentWillMount() {
+      this._mounted = true
+
+      LayoutStore.addChangeListener( this._layoutListener = () => {
+         let dom = ReactDOM.findDOMNode(this.mainCol)
+
+         console.log(dom, this.mainCol)
+
+         dom && this._mounted && this.setState({dimensions: {width: dom.clientWidth, height: dom.clientHeight}})
+      })
+   }
+
+   componentDidMount() {
+      this._layoutListener && this._layoutListener()
+   }
+
+
+   componentWillUnmount() {
+      this._mounted = false
+
+      LayoutStore.removeChangeListener(this._layoutListener)
    }
 
    componentWillReceiveProps(nextProps) {
@@ -241,13 +265,6 @@ class DeviceTable extends React.Component {
       })
    }
 
-   componentDidUpdate() {
-      let dom = ReactDOM.findDOMNode(this.mainCol)
-
-      this._width = dom.clientWidth,
-      this._height = dom.clientHeight
-   }
-
    render() {
       let
          {params} = this.props,
@@ -271,7 +288,7 @@ class DeviceTable extends React.Component {
                   rowsCount={_.size(sortedData)}
                   rowHeight={30}
                   headerHeight={30}
-                  width={this._width}
+                  width={width ? width - 30 : 700}
                   height={Math.max(100, 32 + _.size(sortedData) * 30)}>
 
                   {_.map(columns, (item, idx) =>
