@@ -1,7 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
 import {FormattedRelative} from 'react-intl'
-import {Row, Col, Glyphicon} from 'react-bootstrap'
+import {Row, Col, Button, Glyphicon, Checkbox} from 'react-bootstrap'
 import _ from 'lodash'
 import Select from 'react-select'
 import Dimensions from 'react-dimensions'
@@ -77,9 +77,9 @@ class DeviceTable extends React.Component {
             { field: 'address',                name: 'address',            cell:  <LinkCell transform={encAddr} />, visible: true, link },
             { field: 'network',                name: 'Network',            cell:  <LinkCell />,          visible: false, link: netLink },
             { field: 'type',                   name: 'Device Type',        cell:  <ToggleFacetCell />,   visible: true,  link },
-            { field: 'proto/tm.firmware',      name: 'FW Revision',        cell:  <ToggleFacetCell />,   visible: true,  link },
-            { field: 'proto/tm.hardware',      name: 'HW Revision',        cell:  <ToggleFacetCell />,   visible: true,  link },
-            { field: 'proto/tm.part',          name: 'Part #',             cell:  <ToggleFacetCell />,   visible: true,  link },
+            { field: 'proto/tm.firmware',      name: 'FW Revision',        cell:  <ToggleFacetCell />,   visible: false,  link },
+            { field: 'proto/tm.hardware',      name: 'HW Revision',        cell:  <ToggleFacetCell />,   visible: false,  link },
+            { field: 'proto/tm.part',          name: 'Part #',             cell:  <ToggleFacetCell />,   visible: false,  link },
             { field: 'meta.chan/connected',    name: 'Last Connection',    cell:  <DateTimeCell />,      visible: false, link },
             { field: 'meta.chan/disconnected', name: 'Last Disconnect',    cell:  <DateTimeCell />,      visible: false, link },
             { field: '*/alive?',               name: 'Connection Alive',   cell:  <ChanConnectedCell />, visible: false, link },
@@ -89,6 +89,7 @@ class DeviceTable extends React.Component {
             { field: 'meta.event/key',         name: 'Last Event',         cell:  <LinkCell />,          visible: false, link: msgLink },
             { field: 'provisioned',            name: 'Provisioned',        cell:  <ToggleFacetCell />,   visible: false, link },
          ],
+         showColumnsOverview: false,
          dimensions: {width: -1, height: -1}
       }
 
@@ -96,15 +97,27 @@ class DeviceTable extends React.Component {
       this._onFacetChange = this._onFacetChange.bind(this)
       this._onUpdateFacets = this._onUpdateFacets.bind(this)
       this._onToggleColumn = this._onToggleColumn.bind(this)
+      this.toggleColumnsOverview = this.toggleColumnsOverview.bind(this)
    }
 
    componentWillMount() {
       this._mounted = true
 
+      const colMapper = function(col) {
+         let key = 'dash-col-visible#' + col.field
+
+         console.log('key', key, localStorage[key], col.visible)
+
+         if (undefined !== localStorage[key])
+            col.visible = 'true' === localStorage[key]
+
+         return col
+      }
+
+      this.setState( ({columns, ...oldState}) => _.set(oldState, 'columns', _.map(columns, colMapper)) )
+
       LayoutStore.addChangeListener( this._layoutListener = () => {
          let dom = ReactDOM.findDOMNode(this.mainCol)
-
-         console.log(dom, this.mainCol)
 
          dom && this._mounted && this.setState({dimensions: {width: dom.clientWidth, height: dom.clientHeight}})
       })
@@ -260,9 +273,13 @@ class DeviceTable extends React.Component {
          if (-1 === idx)
             return oldState
 
-         oldState.columns[idx].visible = !oldState.columns[idx].visible
+         localStorage['dash-col-visible#' + field] = oldState.columns[idx].visible = !oldState.columns[idx].visible
          return oldState
       })
+   }
+
+   toggleColumnsOverview() {
+      this.setState({showColumnsOverview: !this.state.showColumnsOverview})
    }
 
    render() {
@@ -284,6 +301,51 @@ class DeviceTable extends React.Component {
             </Col>
 
             <Col xs={8} ref={(e1) => this.mainCol = e1}>
+
+               <div style={{position: 'relative', paddingBottom: '3rem'}}>
+                  <a
+                     className="pull-right"
+                     style={{padding: '0rem 1rem'}}
+                     onClick={this.toggleColumnsOverview}>
+
+                     <Glyphicon glyph="plus" /> Column settings
+                  </a>
+
+                  <div style={{position: 'absolute',
+                               display: this.state.showColumnsOverview ? 'block' : 'none',
+                               top: 25,
+                               right: 5,
+                               width: '80%',
+                               background: '#fff',
+                               border: '1px solid #ccc',
+                               padding: 25,
+                               zIndex: 99}}>
+
+                     <div style={{borderBottom: '1px solid #eee', paddingBottom: 9, marginBottom: 20}}>
+                        <h4>Columns</h4>
+                     </div>
+
+                     <Row style={{clear: 'both'}}>
+                        {_.map(columns, (col, idx) =>
+                           <Col key={idx} xs={4}>
+                              <Checkbox
+                                 key={col.name}
+                                 checked={col.visible}
+                                 onChange={() => this._onToggleColumn(col.field)}
+                                 >
+                                 {col.name || col.field}
+                              </Checkbox>
+                           </Col>
+                        )}
+
+                        <a
+                           onClick={this.toggleColumnsOverview}
+                           className="pull-right"
+                           style={{margin: '1rem 1rem 0 0'}}>Close Columns Overview</a>
+                     </Row>
+                  </div>
+               </div>
+
                <Table
                   rowsCount={_.size(sortedData)}
                   rowHeight={30}
