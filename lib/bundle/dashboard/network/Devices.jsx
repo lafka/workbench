@@ -4,7 +4,6 @@ import {FormattedRelative} from 'react-intl'
 import {Row, Col, Button, Glyphicon, Checkbox} from 'react-bootstrap'
 import _ from 'lodash'
 import Select from 'react-select'
-import Dimensions from 'react-dimensions'
 
 import {Table, Column, Cell} from 'fixed-data-table'
 
