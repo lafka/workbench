@@ -16,8 +16,6 @@ import AppDispatcher from './AppDispatcher'
 
 import {ErrorModal} from './ErrorModal.jsx'
 
-let auth = localStorage.getItem('auth')
-
 // new stuff
 import {Layout} from './ui'
 import {SessionStorage} from './storage'
@@ -35,21 +33,16 @@ export default class App extends React.Component {
     super(props)
 
     this.state = {
-      error: null,
-      loading: !!auth
+      error: null
     }
 
-    window.onerror = this.handleThrownErrors.bind(this)
+    //window.onerror = this.handleThrownErrors.bind(this)
     this.clearError = this.clearError.bind(this)
   }
 
   componentDidMount() {
     var body = document.getElementsByTagName('body')[0]
     body.className = _.without(body.className.split(' '), 'blockloader-init').join(' ')
-
-    if (auth)
-      AuthService.validate(JSON.parse(auth))
-         .done( () => this.setState({loading: false}) )
   }
 
   handleThrownErrors(msg, file, line, col, err) {
@@ -74,10 +67,10 @@ export default class App extends React.Component {
   }
 
   render() {
-    let {error, loading} = this.state
+    let {error} = this.state
 
     return (
-      <Loading loading={loading} text="Waiting for authentication reply from server">
+      <Loading text="Waiting for authentication reply from server">
          <Layout routes={this.props.routes}>
             <ErrorModal onHide={this.clearError} error={error} />
             <SessionStorage valid={false}>{this.props.children}</SessionStorage>
@@ -142,7 +135,7 @@ ReactDOM.render( (
           hide={true}
           getComponent={(loc, callback) => callback(null, require('./bundle/auth/index').Logout)}
           getChildRoutes={(loc, callback) => callback(null, require('./bundle/auth/index').Logout.childRoutes)}
-          getIndexRoute={(loc, callback) => callback(null, require('./bundle/auth/index').Logout.childRoutes[0])} />
+          getIndexRoute={(loc, callback) => callback(null, (require('./bundle/auth/index').Logout.childRoutes || [])[0])} />
 
         <Route path="*" component={ NotFound } />
       </Route>

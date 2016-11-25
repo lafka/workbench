@@ -32,7 +32,8 @@ export class Login extends React.Component {
 
       let {email, password} = this.state
       let {notify} = this.props
-      notify.clear()
+      if (notify)
+         notify.clear()
 
       if (!email) {
          notify.add(
@@ -54,27 +55,63 @@ export class Login extends React.Component {
          .catch( (resp) => {
             let msg = "an unknown error occurred"
 
-            if (_.isError(resp) )
-               throw resp
-            else
-               msg = resp.data.error || JSON.stringify(resp.data)
+            //if (_.isError(resp) )
+            //   throw resp
+            //else
+            //   msg = resp.data.error || JSON.stringify(resp.data)
+
+            console.log('resp aloha' , resp.status, resp)
 
             notify && notify.add(
                <span> <Glyphicon glyph="warning-sign" /> Login failed: <em>{msg}</em></span>,
                'danger')
 
+            console.log('login failed', resp)
+
             this.setState({loading: false})
          } )
-         .then( (_resp) => {
-             this._mounted && this.setState({loading: false})
+         .then( (arg) => {
+            console.log('args', arg)
+            let [resp, req] = arg
 
-             if (!this.props.history) {
-               console.log('Login: missing history component, can\'t redirect')
+            this._mounted && this.setState({loading: false})
+
+            if (!resp)
                return
-             }
 
-             if (this.props.redirect)
-               this.props.history.replace(this.props.redirect)
+            switch (req.status) {
+               case 401: // Unauthorized
+                  notify && notify.add(
+                     <span> <Glyphicon glyph="warning-sign" /> Login failed: <em>{resp.error}</em></span>,
+                     'danger')
+
+                  break
+
+               case 200: // OK
+                  if (!this.props.router) {
+                     console.log('Login: missing router param, can\'t redirect')
+                     return
+                  } else {
+                     if (this.props.redirect)
+                        this.props.router.replace(this.props.redirect)
+                     else
+                        console.log('Login: nothing to redirect to...')
+                  }
+
+                  break
+
+               default:
+                  console.log('Login: unknown API response: ' + req.status + ' ' + req.statusText, resp)
+                  notify && notify.add(
+                     <span>
+                        <Glyphicon glyph="warning-sign" /> Login failed:
+                           <em>
+                              Unknown API response: <b>{req.status} {req.statusText}</b>
+                           </em>
+                     </span>,
+                     'danger')
+
+            }
          })
 
       this.setState({promise, loading: true})

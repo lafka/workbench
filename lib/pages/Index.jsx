@@ -37,6 +37,7 @@ export class Index extends React.Component {
 
   render() {
     let
+      {children, ...props} = this.props,
       {location, history} = this.props,
       {auth} = location.query
 
@@ -44,7 +45,8 @@ export class Index extends React.Component {
 
     return (
       <div className="page index">
-         <TopRow auth={auth} notify={this._notify} history={history} />
+         <TopRow auth={auth} notify={this._notify} {...props} />
+
          <Grid>
             <MainFeatures />
 
@@ -114,7 +116,7 @@ let GuidedTour = (props) =>
       </Col>
    </Row>
 
-const TopRow = (props) => {
+const TopRow = ({children, ...props}) => {
    let auth = AuthStore.auth
    if (!auth) {
       return (
@@ -124,7 +126,8 @@ const TopRow = (props) => {
                   <Col sm={6}><IntroCopy /></Col>
                   <Col sm={6}>
                      <div style={{display: 'register' !== props.auth ? 'inherit' : 'none'}}>
-                        <Login notify={props.notify} redirect="/dashboard" history={props.history} />
+                        <Notify store={props.notify} />
+                        <Login redirect="/dashboard" {...props} />
                         <p>
                            <Link to={{path: "/", query: {auth: "register"}}}>
                               Don't have an account? sign up now!
@@ -133,7 +136,8 @@ const TopRow = (props) => {
                      </div>
 
                      <div style={{display: 'register' === props.auth ? 'inherit' : 'none'}}>
-                        <Register notify={props.notify} redirect="/dashboard" history={props.history} />
+                        <Notify store={props.notify} />
+                        <Register redirect="/dashboard" {...props} />
                         <p>
                            <Link to={{path: "/", query: {auth: "login"}}}>
                               Already have an account? sign in!
