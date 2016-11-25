@@ -12,7 +12,7 @@ import {Notify, Box} from '../ui'
 let branding = require('../../public/images/workbench-neg.png')
 
 export const requireAuth = function(nextState, replace) {
-   if (!AuthStore.isAuthenticated)
+   if (false === AuthStore.isAuthenticated)
       replace({
          pathname: '/auth',
          state: { nextPathname: nextState.location.pathname }

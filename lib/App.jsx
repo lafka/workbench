@@ -33,11 +33,18 @@ export default class App extends React.Component {
     super(props)
 
     this.state = {
-      error: null
+      error: null,
+      awaitAuth: true
     }
 
     //window.onerror = this.handleThrownErrors.bind(this)
     this.clearError = this.clearError.bind(this)
+  }
+
+  componentWillMount() {
+    AuthStore.addChangeListener( this._listener = () =>
+      this.setState({awaitAuth: null === AuthStore.isAuthenticated})
+    )
   }
 
   componentDidMount() {
@@ -67,10 +74,11 @@ export default class App extends React.Component {
   }
 
   render() {
-    let {error} = this.state
+    let {error, awaitAuth} = this.state
+
 
     return (
-      <Loading text="Waiting for authentication reply from server">
+      <Loading loading={awaitAuth} text="Waiting for authentication reply from server">
          <Layout routes={this.props.routes}>
             <ErrorModal onHide={this.clearError} error={error} />
             <SessionStorage valid={false}>{this.props.children}</SessionStorage>

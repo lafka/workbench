@@ -64,11 +64,25 @@ const SortableHeaderCell = ({sortDir, field, onToggle, onChange, children, ...pr
 class DeviceTable extends React.Component {
    constructor(props) {
       super()
+
+      let facets = (props.location.query.facets || "")
+      facets = _.reduce(facets.replace(/;$/, '').split(';'),
+                        function(acc, v) {
+                           let [k, ...val] = v.split(/[:,]/);
+
+                           if (val.length === 1 && "" === val[0])
+                              return acc
+
+                           acc[k] = val;
+                           return acc
+                        },
+                        {})
+
       this.state = {
          sortedData: props.devices,
          colSortDirs: {},
          lastSort: null,
-         facets: {},
+         facets: facets,
          computedFacets: {},
          columns: [
             { field: 'key',                    name: 'Key',                cell:  <LinkCell />,          visible: true,  link },
@@ -104,8 +118,6 @@ class DeviceTable extends React.Component {
 
       const colMapper = function(col) {
          let key = 'dash-col-visible#' + col.field
-
-         console.log('key', key, localStorage[key], col.visible)
 
          if (undefined !== localStorage[key])
             col.visible = 'true' === localStorage[key]
@@ -191,12 +203,13 @@ class DeviceTable extends React.Component {
          return val.length === 0 || _.some(val, (v) => v == _.get(obj, key))
       }
 
+      let url = _.reduce(facets, (acc, v, k) => acc + k + '=' + v.join(',') + ';', '')
       this.setState({
          facets: facets,
          sortedData: this.sortData(_.filter(devices, (obj) => _.every(facets, (v, k) => applyFilter(obj, v, k))),
                                    lastSort,
                                    sortDir)
-      })
+      }, () => this.props.router.push({...this.props.location, query: {facets: url}}))
    }
 
    _onUpdateFacets(...rest) {
@@ -205,7 +218,7 @@ class DeviceTable extends React.Component {
          {facets, lastSort, colSortDirs} = this.state,
          sortDir = colSortDirs[lastSort]
 
-      facets = _.reduce( _.chunk(rest, 2), (acc, [k, v]) => _.set(acc, k, v), {})
+      facets = _.reduce( _.chunk(rest, 2), (acc, [k, v]) => { acc[k] = v; return acc }, {})
 
       function applyFilter(obj, val, key) {
          // use weak comparison to allow 1.45 == "1.45" -> true
@@ -216,12 +229,13 @@ class DeviceTable extends React.Component {
       }
 
 
+      let url = _.reduce(facets, (acc, v, k) => acc + k + ':' + v.join(',') + ';', '')
       this.setState({
          facets: facets,
          sortedData: this.sortData(_.filter(devices, (obj) => _.every(facets, (v, k) => applyFilter(obj, v, k))),
                                    lastSort,
                                    sortDir)
-      })
+      }, () => this.props.router.push({...this.props.location, query: {facets: url}}))
    }
 
    sortData(data, field, sortDir) {
@@ -388,7 +402,7 @@ const Sidebar = ({network, devices, facets, computedFacets, updateFacets}) => {
    let
       pick = _.omit(facets, 'type', 'provisioned', 'proto/tm.firmware', 'proto/tm.hardware', 'proto/tm.part'),
       omitted = _.pick(facets, 'type', 'provisioned', 'proto/tm.firmware', 'proto/tm.hardware', 'proto/tm.part'),
-      remainingValues = _.map(_.pairs(pick), ([a, b]) => a + "  == " + b),
+      remainingValues = _.flatten(_.map(_.pairs(pick), ([a, b]) => _.map(b, (x) => a + " == " + x))),
       rest = (field) => _.flatten(_.pairs(_.omit(facets, field)))
 
    return (<div>
@@ -441,27 +455,87 @@ const Sidebar = ({network, devices, facets, computedFacets, updateFacets}) => {
          multi
          simpleValue
          placeholder="Filter by Part #"
-         value={(facets['proto/tm.part'] || []).join(',')}
+         value={remainingValues.join(',')}
          onChange={(values) => updateFacets.apply(this, ['proto/tm.part', _.filter(values.split(','))].concat(rest('proto/tm.part')))}
          options={toOptions(computedFacets['proto/tm.part'])} />
 
       <hr />
 
-      <Select.Creatable
+      <h5>Custom filters</h5>
+      <Select
          multi
          simpleValue
+         placeholder="Filter by any field ie `name == My name`"
          value={remainingValues.join(',')}
-         onChange={(values) => updateFacets.apply(this, facetValues(values, omitted))}
-         isValidNewOption={ ({label}) => label && label.match(/([^\s=]*)\s*?==\s*?([^\s=]+)$/) }
-         newOptionCreator={ newFacetOption }
-         options={toOptions(remainingValues)} />
+         loadOptions={ (input, callback) => callback(null, filterInput(devices, input)) }
+         options={ filterInput(devices, "").options }
+         onChange={ (values) => updateFacets.apply(this, facetValues(values, omitted)) }
+         />
    </div>)}
+
+
+const RandomRender = (props) => <pre>{JSON.stringify(props, null, 4)}</pre>
+
+const filterInput = function(devices, input) {
+   let [k, v] = (input.match(/^([^=]*)\s?={1,2}\s?(.*)$/) || []).slice(1)
+
+
+   // if k && v, look for elements (devices <- k) == v
+   // if only k, look for paths like k
+   return {
+      options:
+         _.chain(paths(devices))
+            //.filter( (path) => {
+            //   let pattern = input
+            //                  .replace(/\s/, '')
+            //                  .split("")
+            //                  .reduce((a, b)  => a + '[^' + b +']*' + b)
+
+            //   return new RegExp(pattern).test(path.replace(/^\[0-9]*\]$/))
+            //})
+            .map( function(path) {
+               return {
+                  label: path.replace(/^[\[\]0-9.]*/, '') + " == " + _.get(devices, path),
+                  value: path.replace(/^[\[\]0-9.]*/, '') + " == " + _.get(devices, path),
+               }
+            })
+            .value(),
+      complete: true
+   }
+}
+
+let fuzzycache = _.memoize( (pattern) => new RegExp(pattern.split("").reduce((a, b)  => a + '[^' + b +']*' + b)) )
+const fuzzym = (str, pattern) => fuzzycache(pattern).test(str)
+
+_.flatMap = _.compose(_.flatten, _.map)
+function paths(obj, parentKey) {
+  let result;
+
+  if (_.isArray(obj)) {
+    var idx = 0;
+    result = _.flatMap(obj, function (obj) {
+      return paths(obj, (parentKey || '') + '[' + idx++ + ']');
+    });
+  }
+  else if (_.isPlainObject(obj)) {
+    result = _.flatMap(_.keys(obj), function (key) {
+      return _.map(paths(obj[key], key), function (subkey) {
+        return (parentKey ? parentKey + '.' : '') + subkey;
+      });
+    });
+  }
+  else {
+    result = [];
+  }
+  return result.concat(parentKey || [])
+}
+
 
 const facetValues = (values, pick) =>
    _.chain(values.split(','))
       .filter()
       .map((e) => e.split(/\s?==\s?/))
-      .reduce( function(acc, [k, v]) { k = k.replace(/\s/, ''); return _.set(acc, k, (acc[k] || []).concat(v)) }, {})
+      .reduce( function(acc, [k, v]) { k = k.replace(/\s/, ''); acc[k] = (acc[k] || []).concat(v); return acc }, {})
       .merge(pick || {})
       .pairs()
       .flatten()
