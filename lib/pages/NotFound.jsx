@@ -4,10 +4,12 @@ import {Grid, Row, Col} from 'react-bootstrap'
 export const NotFound  = (props) => {
    console.log('render', 'pages/NotFound', window.location.hash)
 
-   let {sidebar} = props
+   let
+      {sidebar, useGrid} = props,
+      MaybeGrid = useGrid ? Grid : ({children}) => <div>{children}</div>
 
    return (
-      <Grid>
+      <MaybeGrid>
          <Row>
             {sidebar && <Col xs={4}>{sidebar}</Col>}
             <Col xs={sidebar ? 8 : 12} className="text-center">
@@ -28,5 +30,5 @@ export const NotFound  = (props) => {
                </p>
             </Col>
          </Row>
-      </Grid>
+      </MaybeGrid>
    )}
