@@ -21,6 +21,11 @@ export class DevicesStorage extends React.Component {
       )
    }
 
+   componentDidUpdate(prevProps, {devices}) {
+      if (this.props.onChange && ! _.isEqual(devices, this.state.devices))
+         this.props.onChange(this.state.devices)
+   }
+
    componentWillReceiveProps(nextProps) {
       if (nextProps.nid && 0 === _.size(DeviceStore.devices(nextProps.nid)))
          DeviceService.list(nextProps.nid)
@@ -36,7 +41,10 @@ export class DevicesStorage extends React.Component {
    render() {
       let
          {devices} = this.state,
-         {children, ...props} = this.props
+         {children, filter, ...props} = this.props
+
+      if (filter)
+         devices = _.filter(devices, filter)
 
       return React.cloneElement(children, _.assign({}, props, {devices: devices}))
    }
