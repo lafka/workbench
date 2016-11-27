@@ -1,7 +1,8 @@
 import React from 'react'
 import _ from 'lodash'
 import ReactDOM from 'react-dom'
-import {Row, Col, Button, Glyphicon, Checkbox} from 'react-bootstrap'
+import {ButtonToolbar, ButtonGroup, Button, Glyphicon} from 'react-bootstrap'
+import {Row, Col, Checkbox} from 'react-bootstrap'
 import {FormattedRelative} from 'react-intl'
 
 import {Table, Column, Cell} from 'fixed-data-table'
@@ -197,54 +198,53 @@ export class DeviceTable extends React.Component {
 
    render() {
       let
-         {onFacetChange} = this.props,
+         {onFacetChange, buttons} = this.props,
          {sortedData, columns, colSortDirs, dimensions, showColumnsOverview} = this.state,
          {width} = dimensions
 
+      console.log(buttons)
       return (
          <div ref={(e1) => this.mainCol = e1}>
-            <div style={{position: 'relative', paddingBottom: '3rem'}}>
-               <a
-                  className="pull-right"
-                  style={{padding: '0rem 1rem'}}
-                  onClick={this.toggleColumnsOverview}>
+            <ButtonToolbar className="pull-right">
+               <ButtonGroup>
+                  <Button onClick={this.toggleColumnsOverview}>Show Column Settings</Button>
+               </ButtonGroup>
 
-                  <Glyphicon glyph="plus" /> Column settings
-               </a>
+               {buttons && buttons}
+            </ButtonToolbar>
 
-               <div style={{position: 'absolute',
-                            display: showColumnsOverview ? 'block' : 'none',
-                            top: 25,
-                            right: 5,
-                            width: '80%',
-                            background: '#fff',
-                            border: '1px solid #ccc',
-                            padding: 25,
-                            zIndex: 99}}>
+            <div style={{position: 'absolute',
+                         display: showColumnsOverview ? 'block' : 'none',
+                         top: 25,
+                         right: 5,
+                         width: '80%',
+                         background: '#fff',
+                         border: '1px solid #ccc',
+                         padding: 25,
+                         zIndex: 99}}>
 
-                  <div style={{borderBottom: '1px solid #eee', paddingBottom: 9, marginBottom: 20}}>
-                     <h4>Columns</h4>
-                  </div>
-
-                  <Row style={{clear: 'both'}}>
-                     {_.map(columns, (col, idx) =>
-                        <Col key={idx} xs={4}>
-                           <Checkbox
-                              key={col.name}
-                              checked={col.visible}
-                              onChange={() => this._onToggleColumn(col.field)}
-                              >
-                              {col.name || col.field}
-                           </Checkbox>
-                        </Col>
-                     )}
-
-                     <a
-                        onClick={this.toggleColumnsOverview}
-                        className="pull-right"
-                        style={{margin: '1rem 1rem 0 0'}}>Close Columns Overview</a>
-                  </Row>
+               <div style={{borderBottom: '1px solid #eee', paddingBottom: 9, marginBottom: 20}}>
+                  <h4>Columns</h4>
                </div>
+
+               <Row style={{clear: 'both'}}>
+                  {_.map(columns, (col, idx) =>
+                     <Col key={idx} xs={4}>
+                        <Checkbox
+                           key={col.name}
+                           checked={col.visible}
+                           onChange={() => this._onToggleColumn(col.field)}
+                           >
+                           {col.name || col.field}
+                        </Checkbox>
+                     </Col>
+                  )}
+
+                  <a
+                     onClick={this.toggleColumnsOverview}
+                     className="pull-right"
+                     style={{margin: '1rem 1rem 0 0'}}>Close Columns Overview</a>
+               </Row>
             </div>
             <Table
                rowsCount={_.size(sortedData)}
