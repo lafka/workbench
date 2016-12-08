@@ -36,7 +36,13 @@ const ToggleFacetCell = ({data, rowIndex, field, onFacetChange, ...props}) =>
       </a>
    </Cell>
 
-const DateTimeCell = ({data, rowIndex, field, ...props}) => <Cell {...props}><FormattedRelative value={_.get(data[rowIndex], field)} /></Cell>
+const DateTimeCell = ({data, rowIndex, field, ...props}) => {
+   let val = _.get(data[rowIndex], field)
+   if (val)
+      return <Cell {...props}><FormattedRelative value={val} /></Cell>
+   else
+      return <Cell {...props}>Never</Cell>
+   }
 
 const ChanConnectedCell = ({data, rowIndex, field, onFacetChange, ...props}) => {
    let meta = data[rowIndex].meta || {}
