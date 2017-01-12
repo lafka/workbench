@@ -1,64 +1,67 @@
 import React from 'react'
+import _ from 'lodash'
 
 export class AddressEncoder extends React.Component {
+   static get propTypes() {
+      return {
+         value: React.PropTypes.number.isRequired
+      }
+   }
 
-  static encode(addr) {
-    switch (AddressEncoder.format) {
-      case "hex":
-        return AddressEncoder.encodeHex(addr, AddressEncoder.endian)
-        break
+   static encode(addr) {
+      switch (AddressEncoder.format) {
+         case 'hex':
+            return AddressEncoder.encodeHex(addr, AddressEncoder.endian)
 
-      case "bin":
-        return AddressEncoder.encodeBin(addr, AddressEncoder.endian)
-        break
+         case 'bin':
+            return AddressEncoder.encodeBin(addr, AddressEncoder.endian)
 
-      case "dec":
-      default:
-        return AddressEncoder.encodeDec(addr, AddressEncoder.endian)
-        break
-    }
-  }
+         case 'dec':
+         default:
+            return AddressEncoder.encodeDec(addr, AddressEncoder.endian)
+      }
+   }
 
-  static encodeHex(addr, endian) {
-    let parts = [
-      (addr >> 24) & 255,
-      (addr >> 16) & 255,
-      (addr >> 8)  & 255,
-      (addr >> 0)  & 255
-    ]
+   static encodeHex(addr, endian) {
+      let parts = [
+         (addr >> 24) & 255,
+         (addr >> 16) & 255,
+         (addr >> 8) & 255,
+         (addr >> 0) & 255
+      ]
 
-    return ('big' === endian ? parts : _.reverse(parts)).map(
-      (n) => ("0" + n.toString(16)).slice(-2)
-    ).join(':')
-  }
+      return ('big' === endian ? parts : _.reverse(parts)).map(
+         (n) => ('0' + n.toString(16)).slice(-2)
+      ).join(':')
+   }
 
-  static encodeBin(addr, endian) {
-    let parts = [
-      (addr >> 24) & 255,
-      (addr >> 16) & 255,
-      (addr >> 8)  & 255,
-      (addr >> 0)  & 255
-    ]
+   static encodeBin(addr, endian) {
+      let parts = [
+         (addr >> 24) & 255,
+         (addr >> 16) & 255,
+         (addr >> 8) & 255,
+         (addr >> 0) & 255
+      ]
 
-    return ('big' === endian ? parts : _.reverse(parts)).join('.')
-  }
+      return ('big' === endian ? parts : _.reverse(parts)).join('.')
+   }
 
-  static encodeDec(addr, endian) {
-    if ('little' === endian)
-      return ((addr & 0xff) << 24)
-           | ((addr & 0xff00) << 8)
-           | ((addr >> 8) & 0xff00)
-           | ((addr >> 24) & 0xff)
+   static encodeDec(addr, endian) {
+      if ('little' === endian)
+         return ((addr & 0xff) << 24)
+                | ((addr & 0xff00) << 8)
+                | ((addr >> 8) & 0xff00)
+                | ((addr >> 24) & 0xff)
 
-    return addr
-  }
+      return addr
+   }
 
-  render() {
-    return (
-      <span className="addr">{AddressEncoder.encode(this.props.value)}</span>
-    )
-  }
+   render() {
+      return (
+         <span className="addr">{AddressEncoder.encode(this.props.value)}</span>
+      )
+   }
 }
 
-AddressEncoder.format = "hex"
-AddressEncoder.endian = "big"
+AddressEncoder.format = 'hex'
+AddressEncoder.endian = 'big'

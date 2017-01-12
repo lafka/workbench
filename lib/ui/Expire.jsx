@@ -1,43 +1,54 @@
-import React from 'react';
+import React from 'react'
 
-export default class Expire extends React.Component {
-  constructor() {
-    super()
-    this.state = {
-     visible: true
-    }
-  }
+class Expire extends React.Component {
+   static get propTypes() {
+      return {
+         children: React.PropTypes.node.isRequired,
+         delay: React.PropTypes.number.isRequired
+      }
+   }
 
-  static defaultProps: {
-    delay: 5000
-  }
+   constructor() {
+      super()
+      this.state = {
+         visible: true
+      }
+   }
 
-  componentWillReceiveProps(nextProps) {
-    if (nextProps.children !== this.props.children) {
+   static defaultProps: {
+      delay: 5000
+   }
+
+   componentWillReceiveProps(nextProps) {
+      if (nextProps.children !== this.props.children) {
+         this.setTimer()
+         this.setState({visible: true})
+      }
+   }
+
+   componentWillUnmount() {
+      if (null !== this._timer)
+         clearTimeout(this._timer)
+   }
+   componentDidMount() {
       this.setTimer()
-      this.setState({visible: true})
-    }
-  }
+   }
 
-  componentWillUnmount() {
-    this._timer != null ? clearTimeout(this._timer) : null
-  }
-  componentDidMount() {
-    this.setTimer()
-  }
+   setTimer() {
+      if (null !== this._timer)
+         clearTimeout(this._timer)
 
-  setTimer() {
-    this._timer != null ? clearTimeout(this._timer) : null
+      if (0 < this.props.delay) {
+         this._timer = setTimeout(function() {
+            this.setState({visible: false})
+            this._timer = null
+         }.bind(this), this.props.delay)
+      }
+   }
 
-    if (this.props.delay > 0) {
-      this._timer = setTimeout(function() {
-        this.setState({visible: false})
-        this._timer = null
-      }.bind(this), this.props.delay)
-    }
-  }
-
-  render() {
-    return this.state.visible ? <div>{this.props.children}</div> : <span />
-  }
+   render() {
+      return this.state.visible ? <div>{this.props.children}</div> : <span />
+   }
 }
+
+export {Expire}

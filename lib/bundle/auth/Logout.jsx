@@ -8,6 +8,14 @@ import {Login, Register} from '../../components/auth'
 import {Notify} from '../../ui'
 
 export class Logout extends React.Component {
+   static get propTypes() {
+      return {
+         location: React.PropTypes.object.isRequired,
+         history: React.PropTypes.any.isRequired,
+         route: React.PropTypes.any.isRequired
+      }
+   }
+
    constructor(props) {
       super(props)
       this._notify = null
@@ -18,34 +26,42 @@ export class Logout extends React.Component {
 
       if (AuthStore.auth || localStorage.auth)
          AuthService.logout('component')
-            .then( (_resp) => this.forceUpdate() )
-            .catch( (_resp) => this.forceUpdate() )
+            .then(() => this.forceUpdate())
+            .catch(() => this.forceUpdate())
    }
 
    render() {
       console.log('render: auth/logout', window.location.hash)
 
       let
-         {route, history} = this.props,
-         authview = this.props.location.query.auth
+         {location, route, history} = this.props,
+         authview = location.query.auth
 
 
       return (
-         <div className="featured" style={{padding: '140px 0 80px', background: '#34495e', color: "#fff", borderBottom: '3px solid #23384d'}}>
+         <div
+            className="featured"
+            style={{
+               padding: '140px 0 80px',
+               background: '#34495e',
+               color: '#fff',
+               borderBottom: '3px solid #23384d'}}>
+
             <Grid>
                <Row>
                   <Col sm={6} className="text-center">
                      <h1>You are now logged out!</h1>
 
                      <p className="lead">
-                        Thanks for using our service, if you did not mean to logout use the form to sign back in.
+                        Thanks for using our service, if you did not mean to
+                        logout use the form to sign back in.
                      </p>
                   </Col>
                   <Col sm={6}>
                      <div style={{display: 'register' !== authview ? 'inherit' : 'none'}}>
                         <Login notify={this._notify} redirect="/dashboard" history={history} />
                         <p>
-                           <Link to={{pathname: route.path, query: {auth: "register"}}}>
+                           <Link to={{pathname: route.path, query: {auth: 'register'}}}>
                               Don't have an account? sign up now!
                            </Link>
                         </p>
@@ -54,7 +70,7 @@ export class Logout extends React.Component {
                      <div style={{display: 'register' === authview ? 'inherit' : 'none'}}>
                         <Register notify={this._notify} redirect="/dashboard" history={history} />
                         <p>
-                           <Link to={{pathname: route.path, query: {auth: "login"}}}>
+                           <Link to={{pathname: route.path, query: {auth: 'login'}}}>
                               Already have an account? sign in!
                            </Link>
                         </p>

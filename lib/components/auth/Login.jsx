@@ -1,4 +1,5 @@
 import React from 'react'
+import _ from 'lodash'
 import {Button, Glyphicon} from 'react-bootstrap'
 
 import {AuthService} from '../../Auth'
@@ -8,14 +9,24 @@ export class Login extends React.Component {
       super(p)
 
       this.state = {
-         email: "",
-         password: "",
+         email: '',
+         password: '',
          promise: null,
-         loading: false,
+         loading: false
       }
 
       this.updateEmail = this.updateEmail.bind(this)
       this.updatePw = this.updatePw.bind(this)
+   }
+
+   static get propTypes() {
+      return {
+         // react-router
+         router: React.PropTypes.object,
+
+         notify: React.PropTypes.object,
+         redirect: React.PropTypes.string
+      }
    }
 
    componentWillMount() {
@@ -24,7 +35,7 @@ export class Login extends React.Component {
 
    componentWillUnmount() {
       this._mounted = false
-      this.setState({password: ""})
+      this.setState({password: ''})
    }
 
    login(ev) {
@@ -52,64 +63,60 @@ export class Login extends React.Component {
       }
 
       let promise = AuthService.login(email, password)
-         .catch( (resp) => {
-            let msg = "an unknown error occurred"
+         .catch((resp) => {
+            let msg = 'an unknown error occurred'
 
-            //if (_.isError(resp) )
-            //   throw resp
-            //else
-            //   msg = resp.data.error || JSON.stringify(resp.data)
+            if (_.isError(resp))
+               throw resp
 
-            console.log('resp aloha' , resp.status, resp)
-
-            notify && notify.add(
-               <span> <Glyphicon glyph="warning-sign" /> Login failed: <em>{msg}</em></span>,
-               'danger')
-
-            console.log('login failed', resp)
+            if (notify)
+               notify.add(
+                  <span> <Glyphicon glyph="warning-sign" /> Login failed: <em>{msg}</em></span>,
+                  'danger')
 
             this.setState({loading: false})
-         } )
-         .then( (arg) => {
-            console.log('args', arg)
+         })
+         .then((arg) => {
             let [resp, req] = arg
 
-            this._mounted && this.setState({loading: false})
+            if (this._mounted)
+               this.setState({loading: false})
 
             if (!resp)
                return
 
             switch (req.status) {
-               case 401: // Unauthorized
-                  notify && notify.add(
-                     <span> <Glyphicon glyph="warning-sign" /> Login failed: <em>{resp.error}</em></span>,
-                     'danger')
+               // Unauthorized
+               case 401:
+                  if (notify)
+                     notify.add(
+                        <span>
+                           <Glyphicon glyph="warning-sign" />
+                           Login failed: <em>{resp.error}</em>
+                        </span>, 'danger')
 
                   break
 
-               case 200: // OK
-                  if (!this.props.router) {
+               // OK
+               case 200:
+                  if (!this.props.router)
                      console.log('Login: missing router param, can\'t redirect')
-                     return
-                  } else {
-                     if (this.props.redirect)
-                        this.props.router.replace(this.props.redirect)
-                     else
-                        console.log('Login: nothing to redirect to...')
-                  }
+                  else if (this.props.redirect)
+                     this.props.router.replace(this.props.redirect)
+                  else
+                     console.log('Login: nothing to redirect to...')
 
                   break
 
                default:
-                  console.log('Login: unknown API response: ' + req.status + ' ' + req.statusText, resp)
-                  notify && notify.add(
-                     <span>
-                        <Glyphicon glyph="warning-sign" /> Login failed:
-                           <em>
-                              Unknown API response: <b>{req.status} {req.statusText}</b>
-                           </em>
-                     </span>,
-                     'danger')
+                  const {status, statusText} = req
+                  console.log('Login: unknown API response: ' + status + ' ' + statusText, resp)
+                  if (notify)
+                     notify.add(
+                        <span>
+                           <Glyphicon glyph="warning-sign" /> Login failed:
+                           <em>Unknown API response: <b>{req.status} {req.statusText}</b></em>
+                        </span>, 'danger')
 
             }
          })
@@ -175,6 +182,3 @@ export class Login extends React.Component {
       )
    }
 }
-
-
-

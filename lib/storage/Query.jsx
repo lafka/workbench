@@ -1,15 +1,18 @@
 import React from 'react'
+import _ from 'lodash'
 import {MessageStore, QueryStream} from '../stores/Message'
 
 export class QueryStorage extends React.Component {
    static get propTypes() {
       return {
+         children: React.PropTypes.node,
          resource: React.PropTypes.string.isRequired,
          query: React.PropTypes.string,
          dateFrom: React.PropTypes.string,
          dateTo: React.PropTypes.string,
          continuous: React.PropTypes.bool,
-         onData: React.PropTypes.func
+         onData: React.PropTypes.func,
+         stateful: React.PropTypes.any
       }
    }
 
@@ -28,7 +31,7 @@ export class QueryStorage extends React.Component {
 
       this._mounted = true
 
-      this._store.addChangeListener( this._listener = () =>
+      this._store.addChangeListener(this._listener = () =>
          this._mounted && false !== stateful && this.setState({messages: this._store.messages}))
 
       this._reQuery()
@@ -46,8 +49,8 @@ export class QueryStorage extends React.Component {
    componentWillReceiveProps(next) {
       let
          {resource, query, continuous} = this.props,
-         dateFrom = this.props['dateFrom'],
-         dateTo = this.props['dateTo']
+         dateFrom = this.props.dateFrom,
+         dateTo = this.props.dateTo
 
       // toggling continuous will open/close permanent connection
       // changing date-(to,from), resource or query will issue new req
@@ -55,15 +58,16 @@ export class QueryStorage extends React.Component {
 
       if (next.continuous !== continuous) {
          // just cancel the stream if needed
-         if ("false" === next.continuous.toString())
+         if ('false' === next.continuous.toString())
+            this._stream.close()
 
          // if we are enabling streaming just requery with new opts
-         if ("true" === next.continuous.toString())
+         if ('true' === next.continuous.toString())
             this._reQuery()
       } else if (next.resource !== resource
             || next.query !== query
-            || next['dateFrom'] !== dateFrom
-            || next['dateTo'] !== dateTo)
+            || next.dateFrom !== dateFrom
+            || next.dateTo !== dateTo)
          this._reQuery()
    }
 
@@ -86,8 +90,14 @@ export class QueryStorage extends React.Component {
 
    render() {
       let
-         {children, resources, query, continuous, dateFrom, dateTo, ...props} = this.props,
-         {messages} = this.state
+         {children} = this.props,
+         {messages} = this.state,
+         props = _.omit(this.props, 'children',
+                                    'resources',
+                                    'query',
+                                    'continuous',
+                                    'dateFrom',
+                                    'dateTo')
 
       return !children ? null : React.cloneElement(children, {messages: messages, ...props})
    }

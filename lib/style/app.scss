@@ -4,4 +4,16 @@
 @import 'navigation.scss';
 @import '../../node_modules/fixed-data-table/dist/fixed-data-table.css';
 @import '../../node_modules/react-select/dist/react-select.css';
-@import '../../node_modules/antd/dist/antd.min.css';
+/* @import '../../node_modules/antd/dist/antd.min.css'; */
+
+.metabar {
+    position: absolute;
+    top: 0;
+    right: 0;
+    margin-top: 1rem;
+    line-height: 46px;
+    padding: 0 20px;
+    z-index: 0;
+
+   .parent { background: #eee; }
+}

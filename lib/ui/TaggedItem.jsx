@@ -1,33 +1,38 @@
 import React from 'react'
 
-class Title extends React.Component {
-  render() {
-    return ( <h4 style={{display: 'inline'}} className="title">{this.props.children}</h4> )
-  }
-}
+const Title = ({children}) =>
+      <h4 style={{display: 'inline'}} className="title">{children}</h4>
 
-class ItemDate extends React.Component {
-  render() {
-    return ( <span className="pull-right date">{this.props.date.toString()}</span> )
-  }
-}
+Title.propTypes = {children: React.PropTypes.node.isRequired}
 
-class Content extends React.Component {
-  render() {
-    return ( <p>{this.props.children}</p> )
-  }
-}
+const ItemDate = ({date}) => <span className="pull-right date">{date.toString()}</span>
+
+ItemDate.propTypes = {date: React.PropTypes.string.isRequired}
+
+const Content = ({children}) => <p>{children}</p>
+
+Content.propTypes = {children: React.PropTypes.node.isRequired}
 
 export class TaggedItem extends React.Component {
-  render() {
-    return (
-      <div className={"tagged-item " + (this.props.className || "")}>
-        <div className={"item item-" + this.props.tagStyle || 'default'}>
-          {this.props.children}
+   static get propTypes() {
+      return {
+         className: React.PropTypes.string,
+         tagStyle: React.PropTypes.string,
+         children: React.PropTypes.node.isRequired
+      }
+   }
+
+   render() {
+      const {className, tagStyle, children} = this.props
+
+      return (
+         <div className={'tagged-item ' + (className || '')}>
+            <div className={'item item-' + tagStyle || 'default'}>
+               {children}
+             </div>
          </div>
-      </div>
-    )
-  }
+      )
+   }
 }
 
 TaggedItem.Title = Title

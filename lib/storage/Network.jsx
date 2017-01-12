@@ -4,6 +4,12 @@ import _ from 'lodash'
 import {NetworkStore, NetworkService} from '../stores/Network'
 
 export class NetworksStorage extends React.Component {
+   static get propTypes() {
+      return {
+         children: React.PropTypes.node.isRequired
+      }
+   }
+
    constructor() {
       super()
       this.state = {networks: NetworkStore.networks}
@@ -14,14 +20,14 @@ export class NetworksStorage extends React.Component {
 
       NetworkService.list()
 
-      NetworkStore.addChangeListener( this._listener = () =>
+      NetworkStore.addChangeListener(this._listener = () =>
          this._mounted && this.setState({networks: NetworkStore.networks})
       )
    }
 
    componentWillUnmount() {
       this._mounted = false
-      NetworkStore.removeChangeListener( this._listener )
+      NetworkStore.removeChangeListener(this._listener)
    }
 
    render() {
@@ -30,14 +36,16 @@ export class NetworksStorage extends React.Component {
          {children, ...props} = this.props
 
       return React.cloneElement(children, _.assign({}, props, {networks: networks}))
-      //return React.cloneElement(this.props.children, _.assign({}, this.props, {network: network}))
    }
 }
 
 
 export class NetworkStorage extends React.Component {
    static get propTypes() {
-      nid: React.PropTypes.string.isRequired
+      return {
+         children: React.PropTypes.node.isRequired,
+         nid: React.PropTypes.string
+      }
    }
 
    constructor(props) {
@@ -55,14 +63,14 @@ export class NetworkStorage extends React.Component {
       if (!network && this.props.nid)
          NetworkService.fetch(this.props.nid)
 
-      NetworkStore.addChangeListener( this._listener = () =>
+      NetworkStore.addChangeListener(this._listener = () =>
          this._mounted && this.setState({network: NetworkStore.network(this.props.nid)})
       )
    }
 
    componentWillUnmount() {
       this._mounted = false
-      NetworkStore.removeChangeListener( this._listener )
+      NetworkStore.removeChangeListener(this._listener)
    }
 
    componentWillReceiveProps(next) {
@@ -83,7 +91,10 @@ export class NetworkStorage extends React.Component {
          {network} = this.state,
          {children, ...props} = this.props
 
-      return React.cloneElement(children, _.assign({}, props, {network: network}))
+      if (network)
+         return React.cloneElement(children, _.assign({}, props, {network: network}))
+      else
+         return null
    }
 }
 

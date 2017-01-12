@@ -1,12 +1,13 @@
 import React from 'react'
 
 import {Grid, Row, Col} from 'react-bootstrap'
-export const NotFound  = (props) => {
+
+export const NotFound = (props) => {
    console.log('render', 'pages/NotFound', window.location.hash)
 
    let
       {sidebar, useGrid} = props,
-      MaybeGrid = useGrid ? Grid : ({children}) => <div>{children}</div>
+      MaybeGrid = useGrid ? Grid : ({children}) => children
 
    return (
       <MaybeGrid>
@@ -31,4 +32,10 @@ export const NotFound  = (props) => {
             </Col>
          </Row>
       </MaybeGrid>
-   )}
+   )
+}
+
+NotFound.propTypes = {
+   sidebar: React.PropTypes.func,
+   useGrid: React.PropTypes.bool
+}

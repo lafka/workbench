@@ -5,12 +5,13 @@ import {ButtonToolbar, ButtonGroup, Button, Glyphicon} from 'react-bootstrap'
 import {Row, Col, Checkbox} from 'react-bootstrap'
 import {FormattedRelative} from 'react-intl'
 
-import {Table, Column, Cell} from 'fixed-data-table'
+import table from 'fixed-data-table'
+const {Table, Column, Cell} = table
 
 import {LayoutStore} from '../../../../stores'
 
 const SortTypes = {
-   ASC:  'ASC',
+   ASC: 'ASC',
    DESC: 'DESC'
 }
 
@@ -20,13 +21,21 @@ const reverseSort = (sortDir) => SortTypes.ASC === sortDir ? SortTypes.DESC : So
 const SortableHeaderCell = ({sortDir, field, onToggle, onChange, children, ...props}) =>
    <Cell {...props}>
       <a onClick={() => onChange(field, sortDir ? reverseSort(sortDir) : SortTypes.DESC)}>
-         {children} {sortDir ? (sortDir === SortTypes.DESC ? '↓' : '↑') : ''}
+         {children} {sortDir && (sortDir === SortTypes.DESC ? '↓' : '↑')}
       </a>
 
       <a className="pull-right" onClick={() => onToggle(field)}>
          <Glyphicon glyph="remove" />
       </a>
    </Cell>
+
+SortableHeaderCell.propTypes = {
+   sortDir: React.PropTypes.oneOf([_.values(SortTypes)]),
+   field: React.PropTypes.string.isRequired,
+   onToggle: React.PropTypes.func.isRequired,
+   onChange: React.PropTypes.func.isRequired,
+   children: React.PropTypes.node.isRequired
+}
 
 
 const ToggleFacetCell = ({data, rowIndex, field, onFacetChange, ...props}) =>
@@ -36,24 +45,55 @@ const ToggleFacetCell = ({data, rowIndex, field, onFacetChange, ...props}) =>
       </a>
    </Cell>
 
+ToggleFacetCell.propTypes = {
+   data: React.PropTypes.array.isRequired,
+   rowIndex: React.PropTypes.number.isRequired,
+   field: React.PropTypes.string.isRequired,
+   onFacetChange: React.PropTypes.func.isRequired
+}
+
 const DateTimeCell = ({data, rowIndex, field, ...props}) => {
    let val = _.get(data[rowIndex], field)
    if (val)
       return <Cell {...props}><FormattedRelative value={val} /></Cell>
    else
       return <Cell {...props}>Never</Cell>
-   }
+}
 
-const ChanConnectedCell = ({data, rowIndex, field, onFacetChange, ...props}) => {
+DateTimeCell.propTypes = {
+   data: React.PropTypes.array.isRequired,
+   rowIndex: React.PropTypes.number.isRequired,
+   field: React.PropTypes.string.isRequired
+}
+
+const ChanConnectedCell = ({data, rowIndex, onFacetChange, ...props}) => {
    let meta = data[rowIndex].meta || {}
    if (!meta['chan/connected'])
-      return <Cell {...props}><a onClick={() => onFacetChange('*/alive?', 'never', null)}>Never</a></Cell>
+      return (
+         <Cell {...props}>
+            <a onClick={() => onFacetChange('*/alive?', 'never', null)}>Never</a>
+         </Cell>)
 
    if (meta['chan/disconnected'] >= meta['chan/connected'])
-      return <Cell {...props}><a onClick={() => onFacetChange('*/alive?', 'dead', null)}>Dead</a></Cell>
+      return (
+         <Cell {...props}>
+            <a onClick={() => onFacetChange('*/alive?', 'dead', null)}>Dead</a>
+         </Cell>)
 
    if (meta['chan/disconnected'] < meta['chan/connected'])
-      return <Cell {...props}><a onClick={() => onFacetChange('*/alive?', 'alive', null)}>Alive</a></Cell>
+      return (
+         <Cell {...props}>
+            <a onClick={() => onFacetChange('*/alive?', 'alive', null)}>Alive</a>
+         </Cell>)
+
+   return <span>unknown</span>
+}
+
+ChanConnectedCell.propTypes = {
+   data: React.PropTypes.array.isRequired,
+   rowIndex: React.PropTypes.number.isRequired,
+   field: React.PropTypes.string.isRequired,
+   onFacetChange: React.PropTypes.func.isRequired
 }
 
 const LinkCell = ({rowIndex, link, field, data, transform, ...props}) =>
@@ -63,14 +103,39 @@ const LinkCell = ({rowIndex, link, field, data, transform, ...props}) =>
       </a>
    </Cell>
 
-const encAddr = (addr) => [(addr >> 24) & 255, (addr >> 16) & 255, (addr >> 8) & 255, addr & 255].join(' . ')
+LinkCell.propTypes = {
+   data: React.PropTypes.array.isRequired,
+   rowIndex: React.PropTypes.number.isRequired,
+   field: React.PropTypes.string.isRequired,
+   link: React.PropTypes.oneOfType([React.PropTypes.func, React.PropTypes.string]).isRequired,
+   transform: React.PropTypes.func
+}
 
-const link = ({field, data, rowIndex}) => `#/dashboard/device/${data[rowIndex].network}/${data[rowIndex].key}`
-const netLink = ({field, data, rowIndex}) => `#/dashboard/network/${data[rowIndex].network}`
-const msgLink = ({field, data, rowIndex}) => `#/dashboard/message/${data[rowIndex].network}/${data[rowIndex].meta}`
+const encAddr = (addr) => [
+   (addr >> 24) & 255,
+   (addr >> 16) & 255,
+   (addr >> 8) & 255,
+   (addr >> 0) & 255].join(' . ')
+
+const link = ({data, rowIndex}) =>
+   `#/dashboard/device/${data[rowIndex].network}/${data[rowIndex].key}`
+
+const netLink = ({data, rowIndex}) =>
+   `#/dashboard/network/${data[rowIndex].network}`
+
+const msgLink = ({data, rowIndex}) =>
+   `#/dashboard/message/${data[rowIndex].network}/${data[rowIndex].meta}`
 
 
 export class DeviceTable extends React.Component {
+   static get propTypes() {
+      return {
+         onFacetChange: React.PropTypes.func.isRequired,
+         buttons: React.PropTypes.node,
+         devices: React.PropTypes.array
+      }
+   }
+
    constructor(props) {
       super(props)
 
@@ -79,22 +144,134 @@ export class DeviceTable extends React.Component {
          colSortDirs: {},
          lastSort: null,
          columns: [
-            { field: 'key',                    name: 'Key',                cell:  <LinkCell />,          visible: true,  link },
-            { field: 'name',                   name: 'Name',               cell:  <LinkCell />,          visible: true,  link },
-            { field: 'address',                name: 'address',            cell:  <LinkCell transform={encAddr} />, visible: true, link },
-            { field: 'network',                name: 'Network',            cell:  <LinkCell />,          visible: false, link: netLink },
-            { field: 'type',                   name: 'Device Type',        cell:  <ToggleFacetCell />,   visible: true,  link },
-            { field: 'proto/tm.firmware',      name: 'FW Revision',        cell:  <ToggleFacetCell />,   visible: false,  link },
-            { field: 'proto/tm.hardware',      name: 'HW Revision',        cell:  <ToggleFacetCell />,   visible: false,  link },
-            { field: 'proto/tm.part',          name: 'Part #',             cell:  <ToggleFacetCell />,   visible: false,  link },
-            { field: 'meta.chan/connected',    name: 'Last Connection',    cell:  <DateTimeCell />,      visible: false, link },
-            { field: 'meta.chan/disconnected', name: 'Last Disconnect',    cell:  <DateTimeCell />,      visible: false, link },
-            { field: '*/alive?',               name: 'Connection Alive',   cell:  <ChanConnectedCell />, visible: false, link },
-            { field: 'meta.created',           name: 'Created',            cell:  <DateTimeCell />,      visible: false, link },
-            { field: 'meta.updated',           name: 'Updated',            cell:  <DateTimeCell />,      visible: false, link },
-            { field: 'meta.event/date',        name: 'Time of Last Event', cell:  <DateTimeCell />,      visible: true,  link },
-            { field: 'meta.event/key',         name: 'Last Event',         cell:  <LinkCell />,          visible: false, link: msgLink },
-            { field: 'provisioned',            name: 'Provisioned',        cell:  <ToggleFacetCell />,   visible: false, link },
+            {
+               field: 'key',
+               name: 'Key',
+               cell: LinkCell,
+               visible: true,
+               link
+            },
+
+            {
+               field: 'name',
+               name: 'Name',
+               cell: LinkCell,
+               visible: true,
+               link
+            },
+
+            {
+               field: 'address',
+               name: 'address',
+               cell: LinkCell,
+               transform: encAddr,
+               visible: true,
+               link
+            },
+
+            {
+               field: 'network',
+               name: 'Network',
+               cell: LinkCell,
+               visible: false,
+               link: netLink
+            },
+
+            {
+               field: 'type',
+               name: 'Device Type',
+               cell: ToggleFacetCell,
+               visible: true,
+               link
+            },
+
+            {
+               field: 'proto/tm.firmware',
+               name: 'FW Revision',
+               cell: ToggleFacetCell,
+               visible: false,
+               link
+            },
+
+            {
+               field: 'proto/tm.hardware',
+               name: 'HW Revision',
+               cell: ToggleFacetCell,
+               visible: false,
+               link
+            },
+
+            {
+               field: 'proto/tm.part',
+               name: 'Part #',
+               cell: ToggleFacetCell,
+               visible: false,
+               link
+            },
+
+            {
+               field: 'meta.chan/connected',
+               name: 'Last Connection',
+               cell: DateTimeCell,
+               visible: false,
+               link
+            },
+
+            {
+               field: 'meta.chan/disconnected',
+               name: 'Last Disconnect',
+               cell: DateTimeCell,
+               visible: false,
+               link
+            },
+
+            {
+               field: '*/alive?',
+               name: 'Connection Alive',
+               cell: ChanConnectedCell,
+               visible: false,
+               link
+            },
+
+            {
+               field: 'meta.created',
+               name: 'Created',
+               cell: DateTimeCell,
+               visible: false,
+               link
+            },
+
+            {
+               field: 'meta.updated',
+               name: 'Updated',
+               cell: DateTimeCell,
+               visible: false,
+               link
+            },
+
+            {
+               field: 'meta.event/date',
+               name: 'Time of Last Event',
+               cell: DateTimeCell,
+               visible: true,
+               link
+            },
+
+            {
+               field: 'meta.event/key',
+               name: 'Last Event',
+               cell: LinkCell,
+               visible: false,
+               link: msgLink
+            },
+
+            {
+               field: 'provisioned',
+               name: 'Provisioned',
+               cell: ToggleFacetCell,
+               visible: false,
+               link
+            }
          ],
          showColumnsOverview: false,
          dimensions: {width: -1, height: -1}
@@ -117,22 +294,27 @@ export class DeviceTable extends React.Component {
          return col
       }
 
-      this.setState( ({columns, ...oldState}) => _.set(oldState, 'columns', _.map(columns, colMapper)) )
+      this.setState(
+         ({columns, ...oldState}) => _.set(oldState, 'columns', _.map(columns, colMapper)))
 
-      LayoutStore.addChangeListener( this._layoutListener = () => {
+      LayoutStore.addChangeListener(this._layoutListener = () => {
          let dom = ReactDOM.findDOMNode(this.mainCol)
 
-         dom && this._mounted && this.setState({dimensions: {width: dom.clientWidth, height: dom.clientHeight}})
+         if (this._mounted && dom)
+            this.setState({dimensions: {width: dom.clientWidth, height: dom.clientHeight}})
       })
    }
 
    componentDidMount() {
-      this._layoutListener && this._layoutListener()
+      if (this._layoutListener)
+         this._layoutListener()
    }
 
    componentWillReceiveProps(nextProps) {
+      const {lastSort, colSortDirs} = this.state
+
       if (!_.eq(nextProps.devices, this.props.devices))
-         this._onSortChange(this.state.lastSort, this.state.colSortDirs[this.state.lastSort], nextProps)
+         this._onSortChange(lastSort, colSortDirs[lastSort], nextProps)
    }
 
    componentWillUnmount() {
@@ -142,7 +324,7 @@ export class DeviceTable extends React.Component {
    }
 
    sortData(data, field, sortDir) {
-      data.sort( (idx_a, idx_b) => {
+      data.sort((idx_a, idx_b) => {
          let
             a = _.get(idx_a, field),
             b = _.get(idx_b, field),
@@ -154,7 +336,7 @@ export class DeviceTable extends React.Component {
          if (a < b)
             sortVal = -1
 
-         if (sortVal !== 0 && sortDir === SortTypes.ASC)
+         if (0 !== sortVal && sortDir === SortTypes.ASC)
             sortVal = sortVal * -1
 
          return sortVal
@@ -173,11 +355,12 @@ export class DeviceTable extends React.Component {
 
       function applyFilter(obj, val, key) {
          // use weak comparison to allow 1.45 == "1.45" -> true
-         return val.length === 0 || _.some(val, (v) => v == _.get(obj, key))
+         return 0 === val.length || _.some(val, (v) => v === _.get(obj, key))
       }
 
+      let filtered = _.filter(devices, (obj) => _.every(facets, (v, k) => applyFilter(obj, v, k)))
       this.setState({
-         sortedData: this.sortData(_.filter(devices, (obj) => _.every(facets, (v, k) => applyFilter(obj, v, k))),
+         sortedData: this.sortData(filtered,
                                    field,
                                    sortDir),
          colSortDirs: colSortDirs,
@@ -192,7 +375,8 @@ export class DeviceTable extends React.Component {
          if (-1 === idx)
             return oldState
 
-         localStorage['dash-col-visible#' + field] = oldState.columns[idx].visible = !oldState.columns[idx].visible
+         oldState.columns[idx].visible = !oldState.columns[idx].visible
+         localStorage['dash-col-visible#' + field] = oldState.columns[idx].visible
          return oldState
       })
    }
@@ -208,9 +392,8 @@ export class DeviceTable extends React.Component {
          {sortedData, columns, colSortDirs, dimensions, showColumnsOverview} = this.state,
          {width} = dimensions
 
-      console.log(buttons)
       return (
-         <div ref={(e1) => this.mainCol = e1}>
+         <div ref={(e1) => (this.mainCol = e1)}>
             <ButtonToolbar className="pull-right">
                <ButtonGroup>
                   <Button onClick={this.toggleColumnsOverview}>Show Column Settings</Button>
@@ -219,15 +402,17 @@ export class DeviceTable extends React.Component {
                {buttons && buttons}
             </ButtonToolbar>
 
-            <div style={{position: 'absolute',
-                         display: showColumnsOverview ? 'block' : 'none',
-                         top: 25,
-                         right: 5,
-                         width: '80%',
-                         background: '#fff',
-                         border: '1px solid #ccc',
-                         padding: 25,
-                         zIndex: 99}}>
+            <div
+               style={{
+                  position: 'absolute',
+                  display: showColumnsOverview ? 'block' : 'none',
+                  top: 25,
+                  right: 5,
+                  width: '80%',
+                  background: '#fff',
+                  border: '1px solid #ccc',
+                  padding: 25,
+                  zIndex: 99}}>
 
                <div style={{borderBottom: '1px solid #eee', paddingBottom: 9, marginBottom: 20}}>
                   <h4>Columns</h4>
@@ -268,15 +453,16 @@ export class DeviceTable extends React.Component {
                                                                 sortDir={colSortDirs[item.field]}>
                                                 {item.name}
                                             </SortableHeaderCell>}
-                     cell={(props) => React.cloneElement(item.cell, {data: sortedData,
-                                                                     onFacetChange,
-                                                                     ...props,
-                                                                     ...item})}
+                     cell={(props) =>
+                        <item.cell data={sortedData}
+                              onFacetChange={onFacetChange}
+                              {...props}
+                              {...item} />
+                        }
                      flexGrow={1}
                      width={item.width || 50} />)}
 
             </Table>
          </div>)
-
    }
 }

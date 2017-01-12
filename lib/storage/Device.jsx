@@ -4,6 +4,14 @@ import _ from 'lodash'
 import {DeviceStore, DeviceService} from '../stores/Device'
 
 export class DevicesStorage extends React.Component {
+   static get propTypes() {
+      return {
+         nid: React.PropTypes.string.isRequired,
+         children: React.PropTypes.node.isRequired,
+         onChange: React.PropTypes.func.isRequired,
+         filter: React.PropTypes.func
+      }
+   }
    constructor(props) {
       super()
       this.state = {devices: DeviceStore.devices(props.nid)}
@@ -16,26 +24,30 @@ export class DevicesStorage extends React.Component {
       if (this.props.nid && 0 === _.size(DeviceStore.devices(this.props.nid)))
          DeviceService.list(this.props.nid)
 
-      DeviceStore.addChangeListener( this._listener = () =>
-         this._mounted && this.setState({devices: DeviceStore.devices(this.props.nid)})
-      )
+      DeviceStore.addChangeListener(this._listener = () => {
+         if (this._mounted)
+            this.setState({devices: DeviceStore.devices(this.props.nid)})
+      })
    }
 
    componentDidUpdate(prevProps, {devices}) {
-      if (this.props.onChange && ! _.isEqual(devices, this.state.devices))
-         this.props.onChange(this.state.devices)
+      const {onChange} = this.props
+
+      if (onChange && !_.isEqual(devices, this.state.devices))
+         onChange(this.state.devices)
    }
 
-   componentWillReceiveProps(nextProps) {
-      if (nextProps.nid && 0 === _.size(DeviceStore.devices(nextProps.nid)))
-         DeviceService.list(nextProps.nid)
+   componentWillReceiveProps({nid}) {
+      if (nid && 0 === _.size(DeviceStore.devices(nid)))
+         DeviceService.list(nid)
 
-      this._mounted && this.setState({devices: DeviceStore.devices(nextProps.nid)})
+      if (this._mounted)
+         this.setState({devices: DeviceStore.devices(nid)})
    }
 
    componentWillUnmount() {
       this._mounted = false
-      DeviceStore.removeChangeListener( this._listener )
+      DeviceStore.removeChangeListener(this._listener)
    }
 
    render() {
@@ -55,7 +67,8 @@ export class DeviceStorage extends React.Component {
    static get propTypes() {
       return {
          nid: React.PropTypes.string.isRequired,
-         device: React.PropTypes.string
+         device: React.PropTypes.string,
+         children: React.PropTypes.node.isRequired
       }
    }
 
@@ -65,26 +78,25 @@ export class DeviceStorage extends React.Component {
    }
 
    componentWillMount() {
-      let device = null
+      let {nid, device} = this.props
 
       this._mounted = true
 
-      if (!this.props.nid || !this.props.device)
+      if (!nid || !device)
          return
 
-      device = DeviceStore.device(this.props.nid, this.props.device)
+      if (!DeviceStore.device(nid, device) && nid)
+         DeviceService.fetch(nid, device)
 
-      if (!device && this.props.nid)
-         DeviceService.fetch(this.props.nid, this.props.device)
-
-      DeviceStore.addChangeListener( this._listener = () =>
-         this._mounted && this.setState({device: DeviceStore.device(this.props.nid, this.props.device)})
-      )
+      DeviceStore.addChangeListener(this._listener = () => {
+         if (this._mounted)
+            this.setState({device: DeviceStore.device(this.props.nid, this.props.device)})
+      })
    }
 
    componentWillUnmount() {
       this._mounted = false
-      DeviceStore.removeChangeListener( this._listener )
+      DeviceStore.removeChangeListener(this._listener)
    }
 
    componentWillReceiveProps(next) {
@@ -108,6 +120,3 @@ export class DeviceStorage extends React.Component {
       return React.cloneElement(children, _.assign({}, props, {device: device}))
    }
 }
-
-
-

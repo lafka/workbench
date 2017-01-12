@@ -1,65 +1,55 @@
 import React from 'react'
 import {Alert} from 'react-bootstrap'
 
-import _ from 'lodash'
+export const Title = ({className, children}) =>
+   <div className={(className || '') + ' box-title'}>
+      <h4>{children}</h4>
+   </div>
 
-class Title extends React.Component {
-  render() {
-    return (
-      <div className={(this.props.className || "") + " box-title"}>
-        <h4>{this.props.children}</h4>
-      </div>
-    )
-  }
+Title.propTypes = {
+   children: React.PropTypes.node.isRequired,
+   className: React.PropTypes.string
 }
 
-class Notify extends React.Component {
-  render() {
-    return (
-      <div className={(this.props.className || "") + " box-notify"}>
-        <Alert bsStyle={this.props.style}>{ this.props.children }</Alert>
-      </div>
-    )
-  }
+export const Notify = ({className, style, children}) =>
+   <div className={(className || '') + ' box-notify'}>
+      <Alert bsStyle={style}>{ children }</Alert>
+   </div>
+
+Notify.propTypes = {
+   children: React.PropTypes.node.isRequired,
+   style: React.PropTypes.string.isRequired,
+   className: React.PropTypes.string
 }
 
-class Content extends React.Component {
-  render() {
-    return (
-      <div className={(this.props.className || "") + " box-content"}>
+export const Content = ({className, children}) =>
+   <div className={(className || '') + ' box-content'}>
+      { children }
+   </div>
 
-        { this.props.children }
-      </div>
-    )
-  }
+
+Content.propTypes = {
+   children: React.PropTypes.node.isRequired,
+   className: React.PropTypes.string
 }
 
-class Info extends React.Component {
-  render() {
-    return (
-      <div className={(this.props.className || "") + " box-info"}>
+const Info = ({className, children}) =>
+   <div className={(className || '') + ' box-info'}>
+      { children }
+   </div>
 
-        { this.props.children }
-      </div>
-    )
-  }
+Info.propTypes = {
+   children: React.PropTypes.node.isRequired,
+   className: React.PropTypes.string
 }
 
-export class Box extends React.Component {
-  render() {
-    let show = undefined === this.props.show ? true : !!this.props.show
+export const Box = ({show, className, children}) =>
+   show ? <div className={(className || '') + ' box'}>{ children }</div> : null
 
-    if (show)
-      return (
-        <div
-          className={(this.props.className || "") + " box"}>
-
-          { this.props.children }
-        </div>
-      )
-    else
-      return null
-  }
+Box.propTypes = {
+   children: React.PropTypes.node.isRequired,
+   show: React.PropTypes.bool.isRequired,
+   className: React.PropTypes.string
 }
 
 Box.Title = Title

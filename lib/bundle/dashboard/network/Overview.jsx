@@ -1,13 +1,29 @@
 import React from 'react'
+import _ from 'lodash'
 
 import {SetupGuide, SetupSteps} from '../setup-guide'
 
 export class Overview extends React.Component {
+   static get propTypes() {
+      return {
+         network: React.PropTypes.object.isRequired,
+         router: React.PropTypes.object.isRequired,
+         routes: React.PropTypes.array.isRequired,
+         params: React.PropTypes.object.isRequired
+      }
+   }
+
    constructor(props) {
       super(props)
 
       this.ignoreSetup = this.ignoreSetup.bind(this)
       this.gotoSetup = this.gotoSetup.bind(this)
+   }
+
+   componentWillMount() {
+   }
+
+   componentDidMount() {
    }
 
    ignoreSetup() {
@@ -24,7 +40,7 @@ export class Overview extends React.Component {
                      .replace('//', '/'),
          url
 
-      url = _.reduce(params, (acc, v, k) => acc.replace(":" + k, v), nextPath)
+      url = _.reduce(params, (acc, v, k) => acc.replace(':' + k, v), nextPath)
 
       router.push(url)
    }
@@ -35,9 +51,9 @@ export class Overview extends React.Component {
       return (
          <div>
             <div
-               style={{marginBottom: '1rem',
-                       display: SetupGuide.setupFinished(network) ? 'none' : 'inherit',
-                     }}>
+               style={{
+                  marginBottom: '1rem',
+                  display: SetupGuide.setupFinished(network) ? 'none' : 'inherit'}}>
                <div>
                   <button
                      onClick={this.ignoreSetup}

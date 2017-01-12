@@ -6,111 +6,117 @@ import _ from 'lodash'
 import {Alert} from 'react-bootstrap'
 
 export class NotifyStore extends EventEmitter {
-  constructor() {
-    super()
+   constructor() {
+      super()
 
-    this._notifications = []
-  }
+      this._notifications = []
+   }
 
-  subscribe(subscription) {
-    this._dispatchToken = AppDispatcher.register(subscription)
-  }
+   subscribe(subscription) {
+      this._dispatchToken = AppDispatcher.register(subscription)
+   }
 
-  get dispatchToken() {
-    return this._dispatchToken
-  }
+   get dispatchToken() {
+      return this._dispatchToken
+   }
 
-  emitChange() {
-    this.emit('CHANGE')
-  }
+   emitChange() {
+      this.emit('CHANGE')
+   }
 
-  addChangeListener(cb) {
-    this.on('CHANGE', cb)
-  }
+   addChangeListener(cb) {
+      this.on('CHANGE', cb)
+   }
 
-  removeChangeListener(cb) {
-    this.removeListener('CHANGE', cb)
-  }
+   removeChangeListener(cb) {
+      this.removeListener('CHANGE', cb)
+   }
 
-  get notifications() {
-    return this._notifications
-  }
+   get notifications() {
+      return this._notifications
+   }
 
-  get length() {
-    return this._notifications.length
-  }
+   get length() {
+      return this._notifications.length
+   }
 
-  clear() {
-    this._notifications = []
-    this.emitChange()
-  }
+   clear() {
+      this._notifications = []
+      this.emitChange()
+   }
 
-  remove(ref) {
-    this._notifications = _.filter(this.notifications, (note) => ref !== note.ref)
-    this.emitChange()
-  }
+   remove(ref) {
+      this._notifications = _.filter(this.notifications, (note) => ref !== note.ref)
+      this.emitChange()
+   }
 
-  add(message, style, opts) {
-    this._notifications = []
+   add(message, style, inopts) {
+      this._notifications = []
 
-    opts = opts || {}
-    let
-      ref = Math.random().toString(36).replace(/^0\./, ''),
-      notifications = this._notifications
+      let opts = inopts || {}
+      let
+         ref = Math.random().toString(36).replace(/^0\./, ''),
+         notifications = this._notifications
 
-    if (opts.clearOut)
-      notifications = []
+      if (opts.clearOut)
+         notifications = []
 
-    let prev = _.where(notifications, {message: message, style: style})
+      let prev = _.where(notifications, {message: message, style: style})
 
-    if (prev.length > 0)
-      return prev.ref
+      if (0 < prev.length)
+         return prev.ref
 
-    notifications.push({
-      message: message,
-      style: style,
-      ref: ref
-    })
+      notifications.push({
+         message: message,
+         style: style,
+         ref: ref
+      })
 
-    this._notifications = notifications
-    this.emitChange()
+      this._notifications = notifications
+      this.emitChange()
 
-    if (opts.expire)
-      setTimeout(() => this.remove(ref), opts.expire)
+      if (opts.expire)
+         setTimeout(() => this.remove(ref), opts.expire)
 
-    return ref
-  }
+      return ref
+   }
 }
 
 export class Notify extends React.Component {
-  constructor() {
-    super()
-    this.state = {
-      notifications: [],
-    }
-  }
+   static get propTypes() {
+      return {
+         store: React.PropTypes.instanceOf(NotifyStore)
+      }
+   }
 
-  componentDidMount() {
-    this.props.store.addChangeListener(this._listener = () => 
-      this.setState({notifications: this.props.store.notification})
-    )
-  }
+   constructor() {
+      super()
+      this.state = {
+         notifications: []
+      }
+   }
 
-  componentWillUnmount() {
-    this.props.store.removeChangeListener(this._listener)
-  }
+   componentDidMount() {
+      this.props.store.addChangeListener(this._listener = () =>
+         this.setState({notifications: this.props.store.notification})
+      )
+   }
 
-  render() {
-    return (
-      <div>
-        {this.props.store.notifications.map( (note) =>
-          <Alert key={note.ref} bsStyle={note.style}>
-            {_.isFunction(note.message) ? note.message() : note.message}
-          </Alert>
-        )}
-      </div>
-    )
-  }
+   componentWillUnmount() {
+      this.props.store.removeChangeListener(this._listener)
+   }
+
+   render() {
+      return (
+         <div>
+            {this.props.store.notifications.map((note) =>
+               <Alert key={note.ref} bsStyle={note.style}>
+                  {_.isFunction(note.message) ? note.message() : note.message}
+               </Alert>
+            )}
+         </div>
+      )
+   }
 }
 
 Notify.Store = NotifyStore

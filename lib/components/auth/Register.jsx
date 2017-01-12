@@ -1,9 +1,18 @@
 import React from 'react'
-import {Input, Button, Glyphicon} from 'react-bootstrap'
+import _ from 'lodash'
+import {Button, Glyphicon} from 'react-bootstrap'
 
 import {AuthService} from '../../Auth'
 
 export class Register extends React.Component {
+   static get propTypes() {
+      return {
+         notify: React.PropTypes.object,
+         redirect: React.PropTypes.string,
+         history: React.PropTypes.func
+      }
+   }
+
    constructor(p) {
       super(p)
 
@@ -40,7 +49,7 @@ export class Register extends React.Component {
    }
 
    register(ev) {
-      ev.preventDefault();
+      ev.preventDefault()
 
       let
          {email, password, confirm_password} = this.state,
@@ -55,13 +64,19 @@ export class Register extends React.Component {
       }
 
       if (!password) {
-         notify.add(<span> <Glyphicon glyph="comment" /> You must enter a password</span>, 'warning')
+         notify.add(
+            <span>
+               <Glyphicon glyph="comment" /> You must enter a password
+            </span>, 'warning')
          this.forceUpdate()
          return
       }
 
       if (!confirm_password) {
-         notify.add(<span> <Glyphicon glyph="comment" /> You must confirm your password</span>, 'warning')
+         notify.add(
+            <span>
+               <Glyphicon glyph="comment" /> You must confirm your password
+            </span>, 'warning')
          this.forceUpdate()
          return
       }
@@ -73,24 +88,26 @@ export class Register extends React.Component {
       }
 
       let promise = AuthService.register(email, password)
-         .catch( (resp) => {
-            let msg = "An unknown error occured"
+         .catch((resp) => {
+            let msg = 'An unknown error occured'
 
-            if (_.isError(resp) )
+            if (_.isError(resp))
                throw resp
             else
                msg = resp.data.error || JSON.stringify(resp.data)
 
-            notify && notify.add(
-               <span> <Glyphicon glyph="warning-sign" /> Registration failed: <em>{msg}</em></span>,
-               'danger')
+            if (notify)
+               notify.add(
+                  <span>
+                     <Glyphicon glyph="warning-sign" /> Registration failed: <em>{msg}</em>
+                  </span>, 'danger')
 
             this.setState({loading: false})
-         } )
-         .then( (_resp) => {
-             this.setState({loading: false})
+         })
+         .then(() => {
+            this.setState({loading: false})
 
-             if (this.props.redirect)
+            if (this.props.redirect)
                this.props.history.replace(this.props.redirect)
          })
 
