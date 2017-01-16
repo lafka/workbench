@@ -2,11 +2,143 @@ import React from 'react'
 import _ from 'lodash'
 
 import {PageHeader, Row, Col} from 'react-bootstrap'
-import {FormControl, Button, ButtonToolbar, Alert} from 'react-bootstrap'
+import {Button, ButtonToolbar, Alert} from 'react-bootstrap'
 
 import {Loading} from '../../ui'
+import {Form, Input} from '../../forms'
 
-import {UserService} from '../../User'
+import IntlPhoneNumbers from './international-phone-codes.json'
+
+function filtermap(array, f) {
+   return _.reduce(array, function(acc, el, k) {
+      let res = f(el, k)
+
+      if (undefined !== res && null !== res)
+         acc.push(res)
+
+      return acc
+   }, [])
+}
+
+const phoneNumbers = _.map(IntlPhoneNumbers, function(codes, country) {
+   return {
+      country,
+      sanitizedcodes: _.map(codes.split(/ and /),
+         (code) => code.replace(/^([0-9]+)$/, '+$1').replace(/-/, '')),
+      codes: _.map(codes.split(/ and /), (code) => code.replace(/^([0-9]+)$/, '+$1'))
+   }
+})
+
+const filterNumberPrefix = function(number, code) {
+   if (!code)
+      return false
+
+   if (number === code)
+      return true
+
+   if (number.length >= code.length)
+      return number.slice(0, code.length) === code
+   else
+      return number === code.slice(0, number.length)
+}
+
+const sanitizeNumber = function(number) {
+   if (!number)
+      return null
+
+
+   return '+' + number
+      .replace(/^(00|\+)/, '')
+}
+
+const findCountriesByNumber = function(number) {
+   let result = filtermap(phoneNumbers, function({sanitizedcodes, codes, ...rest}) {
+      let matches = filtermap(
+            _.zip(sanitizedcodes, codes),
+            ([sanitized, code]) =>
+               filterNumberPrefix(number, sanitized) ? [sanitized, code] : undefined)
+
+      return 0 < matches.length
+         ? _.assign(rest, {sanitizedcode: matches[0][0], code: matches[0][1]})
+         : null
+   })
+
+   // reverse sort by returning the length as a negative value
+   // this ensures the longest common prefix will be at the head of `result`
+   return _.sortBy(result, ({code}) => -1 * code.length)
+}
+
+export class PhoneInput extends React.Component {
+   static get contextTypes() {
+      return {
+         input: React.PropTypes.object,
+         patch: React.PropTypes.object
+      }
+   }
+
+   static get propTypes() {
+      return {
+         param: React.PropTypes.string.isRequired
+      }
+   }
+
+   static formatNumber(number, def) {
+      if (!def)
+         return number
+
+      // replace the prefix with a nicely formated prefix
+      return number.replace(new RegExp('^\\' + def.sanitizedcode + '\\s*'), def.code + ' ')
+   }
+
+   // takes second argument def which contains format props
+   static validateNumber(num) {
+      // mom always said no input is good input
+      if (!num)
+         return true
+
+      if (!num.match(/^\+/))
+         return {error: 'Phone numbers must start with a +', state: 'warn'}
+
+      if (num.match(/[^0-9() +-]/))
+         return {error: 'Phone numbers may only contain numbers, (, ), - and spaces', state: 'warn'}
+
+      return true
+   }
+
+   render() {
+      let
+         {param} = this.props,
+         number = _.get(this.context.patch, param) || _.get(this.context.input, param),
+         countries = findCountriesByNumber(number),
+         country, flag
+
+      // if we have a number and length, with + prefix, of number > 3
+      if (number && 3 <= number.length && countries && 1 <= countries.length) {
+         flag = countries[0].country
+         country = countries[0].country
+      }
+
+      return (
+         <Input
+            param={param}
+            label="Phone Number"
+            type="tel"
+            transform={[sanitizeNumber]}
+            format={(num) => PhoneInput.formatNumber(num, countries[0])}
+            validate={(num) => PhoneInput.validateNumber(num, countries[0])}
+            size="16"
+            placeholder="+47 79 13 ...">
+
+            <span
+               style={{top: '22px', right: '2px'}}
+               className="form-control-feedback">
+
+               {country && <img alt={country} src={`/public/flags/${flag}.png`} />}
+            </span>
+         </Input>
+      )
+   }
+}
 
 export class Account extends React.Component {
    static get propTypes() {
@@ -19,15 +151,12 @@ export class Account extends React.Component {
       super(props)
 
       this.state = {
-         patch: {},
-         password_confirm: '',
          notify: null
       }
    }
 
    componentWillMount() {
       this._mounted = true
-      UserService.fetch()
    }
 
    componentWillUnmount() {
@@ -36,91 +165,6 @@ export class Account extends React.Component {
 
    dismissNotification() {
       this.setState({notify: null})
-   }
-
-   handleSubmit(ev) {
-      ev.preventDefault()
-
-      if (
-         0 !== this.passwordValidationState().length ||
-         0 !== this.nameValidationState().length ||
-         0 !== this.phoneValidationState().length) {
-         return
-      }
-
-      UserService.update(this.state.patch)
-         .then(() =>
-            this.setState({notify:
-                  <Alert
-                     key="success"
-                     onDismiss={() => this.dismissNotification()}
-                     bsStyle="success"
-                     className="expand">
-
-                     User was updated
-                  </Alert>}))
-         .catch((resp) =>
-            this.setState({notify:
-                  <Alert
-                     key="error"
-                     onDismiss={() => this.dismissNotification()}
-                     bsStyle="danger"
-                     className="expand">
-
-                     Failed to update user: {resp.data.error || JSON.stringify(resp.data)}
-                  </Alert>}))
-   }
-
-
-   passwordValidationState() {
-      let
-         password = this.state.patch.password,
-         confirm = this.state.password_confirm
-
-      if (!password)
-         return []
-
-      if (8 > password.length)
-         return ['error', undefined, 'Passwords must be a minimum of 8 characters']
-
-      if (password !== confirm)
-         return ['error', 'error', 'Password does not match']
-
-      return []
-   }
-
-   nameValidationState() {
-      let name = this.state.patch.name
-      if (!name)
-         return []
-
-      if (50 < name.length) {
-         return ['error', 'Name must be a maximum of 50 characters long']
-      } else if (6 > name.length) {
-         return ['error', 'Name must be a at least 6 characters long']
-      }
-
-      return []
-   }
-
-   phoneValidationState() {
-      let number = this.state.patch.phone
-      if (!number)
-         return []
-
-      if (!number.match(/^(\+|00|$)[0-9]*/)) {
-         return ['error', 'Phone number must start with a country code (`+47` or `0047`)']
-      }
-
-      if (15 <= number.replace(/[^0-9]*/g, '').length) {
-         return ['error', 'Phone number must be maximum 15 characters']
-      } else if (8 > number.replace(/[^0-9]*/g, '').length) {
-         return [
-            'warning',
-            'Phone number must be a minimum of 8 characters - including country code']
-      }
-
-      return []
    }
 
    render() {
@@ -137,39 +181,26 @@ export class Account extends React.Component {
 
             <PageHeader>Account Settings</PageHeader>
             <Loading loading={_.eq({}, user)}>
-               <form onSubmit={(ev) => this.handleSubmit(ev)}>
+               <Form input={user} onSubmit={(ev) => this.handleSubmit(ev)}>
                   <Row>
                      <Col xs={12} sm={6}>
-                        <FormControl
-                           value={user.email}
+                        <Input
+                           param="email"
                            type="text"
                            label="Email"
-                           placeholder="your@email-address.com"
-                           disabled />
-                     </Col>
-
-                     <Col xs={12} sm={6}>
-                        <FormControl
                            type="text"
-                           value={user.name || ''}
-                           bsStyle={this.nameValidationState()[0]}
-                           help={this.nameValidationState()[1] || ' '}
-                           label="Name"
-                           placeholder="Full name"
-                           disabled
-                           />
+                           placeholder="email@address.com" />
                      </Col>
 
                      <Col xs={12} sm={6}>
-                        <FormControl
-                           type="tel"
-                           value={user.phone || ''}
-                           bsStyle={this.phoneValidationState()[0]}
-                           help={this.phoneValidationState()[1] || ' '}
-                           label="Phone Number"
-                           placeholder="+47 123 45 678"
-                           disabled
-                           />
+                        <Input
+                           param="name"
+                           label="Full Name"
+                           type="text" />
+                     </Col>
+
+                     <Col xs={12} sm={6}>
+                        <PhoneInput param="phone" />
                      </Col>
                   </Row>
 
@@ -177,26 +208,18 @@ export class Account extends React.Component {
 
                   <Row>
                      <Col xs={12} sm={6}>
-                        <FormControl
+                        <Input
+                           param="password"
                            type="password"
-                           label="New Password"
-                           value={this.state.patch.password}
-                           bsStyle={this.passwordValidationState()[0]}
-                           help={this.passwordValidationState()[2] || ' '}
-                           placeholder="..."
-                           disabled
-                           />
+                           label="Password" />
                      </Col>
 
                      <Col xs={12} sm={6}>
-                        <FormControl
+                        <Input
+                           param={null}
                            type="password"
                            label="Confirm Password"
-                           value={this.state.patch.password_confirm}
-                           bsStyle={this.passwordValidationState()[1]}
-                           placeholder="..."
-                           disabled
-                           />
+                           disabled />
                      </Col>
                   </Row>
 
@@ -221,7 +244,7 @@ export class Account extends React.Component {
                         </ButtonToolbar>
                      </Col>
                   </Row>
-               </form>
+               </Form>
             </Loading>
          </div>
       )

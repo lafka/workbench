@@ -1,7 +1,7 @@
 import React from 'react'
 import _ from 'lodash'
 
-import {UserStore} from '../User'
+import {UserService, UserStore} from '../User'
 
 export class UserStorage extends React.Component {
    static get propTypes() {
@@ -18,6 +18,9 @@ export class UserStorage extends React.Component {
    componentWillMount() {
       this._mounted = true
 
+      if (!UserStore.user)
+         UserService.fetch()
+
       UserStore.addChangeListener(this._listener = () =>
          this._mounted && this.setState({user: UserStore.user || null})
       )
@@ -33,7 +36,10 @@ export class UserStorage extends React.Component {
          {user} = this.state,
          {children, ...props} = this.props
 
-      return React.cloneElement(children, _.assign({}, props, {user: user}))
+      if (user)
+         return React.cloneElement(children, _.assign({}, props, {user: user}))
+      else
+         return null
    }
 }
 
