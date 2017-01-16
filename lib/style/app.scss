@@ -17,3 +17,8 @@
 
    .parent { background: #eee; }
 }
+
+/* combines bootstrap and antd styles */
+.form .has-error.has-feedback:after {
+   top: 24px
+}
