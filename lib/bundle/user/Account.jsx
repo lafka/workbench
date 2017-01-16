@@ -143,6 +143,71 @@ export class PhoneInput extends React.Component {
    }
 }
 
+function scorePassword(pass) {
+   let score = 0
+   if (!pass)
+      return score
+
+   // award every unique letter until 5 repetitions
+   let letters = {}
+
+   for (let i = 0; i < pass.length; i = i + 1) {
+      letters[pass[i]] = (letters[pass[i]] || 0) + 1
+      score = score + (5.0 / letters[pass[i]])
+   }
+
+   // bonus points for mixing it up
+   let variations = {
+      digits: /\d/.test(pass),
+      lower: /[a-z]/.test(pass),
+      upper: /[A-Z]/.test(pass),
+      nonWords: /\W/.test(pass)
+   }
+
+   let variationCount = 0
+
+   _.each(variations, function(v) {
+      variationCount = variationCount + (true === v ? 1 : 0)
+   })
+
+   score = score + ((variationCount - 1) * 10)
+
+   return parseInt(score, 10)
+}
+
+const PasswordStrength = function({score, error}) {
+   const
+      strength = parseInt(score / 25, 10),
+      scoreClass = 'strength-' + strength,
+      quality = ['terrible', 'poor', 'average', 'good', 'excellent']
+
+   if (score)
+      return (
+         <div>
+            <div className={'password-strength ' + scoreClass}>
+               <span className="bar-1" />
+               <span className="bar-2" />
+               <span className="bar-3" />
+               <span className="bar-4" />
+            </div>
+
+            <span className="help-block">
+               {error && error}
+               {!error && <span className={'password-strength-text ' + scoreClass}>
+                  Password strength: {quality[strength]}
+               </span>}
+            </span>
+         </div>
+      )
+
+   return null
+}
+
+PasswordStrength.propTypes = {
+   score: React.PropTypes.number.isRequired,
+   error: React.PropTypes.number
+}
+
 export class Account extends React.Component {
    static get propTypes() {
       return {
@@ -170,10 +235,29 @@ export class Account extends React.Component {
       this.setState({notify: null})
    }
 
+   validatePw(pw, {param}, input, patch) {
+      // validate that passwords match
+      if ('$password' === param && pw !== patch.password) {
+         return '' === patch.password ? true : {error: 'Password does not match'}
+      } else {
+         const score = scorePassword(pw)
+
+         if (!pw)
+            return true
+
+         if (30 > score)
+            return {error: 'Password is to weak', score}
+
+         if (10 > pw.length)
+            return {error: 'Password should be atleast 10 characters long', score}
+
+
+         return {score}
+      }
+   }
+
    render() {
       let {user} = this.props
-
-      console.log('user/ex', _.eq({}, user), user)
 
       if (!user)
          user = {}
@@ -187,12 +271,8 @@ export class Account extends React.Component {
                <Form input={user} onSubmit={(ev) => this.handleSubmit(ev)}>
                   <Row>
                      <Col xs={12} sm={6}>
-                        <Input
-                           param="email"
-                           type="text"
-                           label="Email"
-                           type="text"
-                           placeholder="email@address.com" />
+                        <label>Email</label>
+                        <p className="form-control-static">{user.email}</p>
                      </Col>
 
                      <Col xs={12} sm={6}>
@@ -214,15 +294,18 @@ export class Account extends React.Component {
                         <Input
                            param="password"
                            type="password"
-                           label="Password" />
+                           label="Password"
+                           validate={this.validatePw}
+                           feedback={PasswordStrength} />
                      </Col>
 
                      <Col xs={12} sm={6}>
                         <Input
-                           param={null}
+                           param="$password"
                            type="password"
                            label="Confirm Password"
-                           disabled />
+                           validate={this.validatePw}
+                           disabled={false} />
                      </Col>
                   </Row>
 

@@ -22,3 +22,26 @@
 .form .has-error.has-feedback:after {
    top: 24px
 }
+
+/*
+.password-strength, .password-strength-text { display: none; }
+input[type="password"]:focus + div > .password-strength,
+input[type="password"]:focus + div .password-strength-text
+ { display: inherit; }
+*/
+
+.password-strength + .help-block {margin-top: 12px;}
+.password-strength {line-height:3px;height:3px; margin-top: -8px; margin-left: 12px; }
+.password-strength > span {display:inline-block; height:3px; width:23.5%; margin-right:2px; background:#ccc}
+.password-strength > span:last-child {margin-right:0}
+.password-strength.strength-0 > span.bar-1 {background-color:red}
+.password-strength.strength-1 > span.bar-1,
+.password-strength.strength-2 > span.bar-1,
+.password-strength.strength-2 > span.bar-2 {background-color:orange}
+
+.password-strength.strength-3 > span.bar-1,
+.password-strength.strength-3 > span.bar-2,
+.password-strength.strength-3 > span.bar-3 {background-color:green}
+.password-strength.strength-3 > span.bar-4 {background-color:orange}
+
+.password-strength.strength-4 > span {background-color:green}
