@@ -1,8 +1,8 @@
 import React from 'react'
-import _ from 'lodash'
 import {Button, Glyphicon} from 'react-bootstrap'
 
 import {AuthService} from '../../Auth'
+import {Spinkit} from '../../ui'
 
 export class Login extends React.Component {
    constructor(p) {
@@ -63,16 +63,20 @@ export class Login extends React.Component {
       }
 
       let promise = AuthService.login(email, password)
-         .catch((resp) => {
+         .catch((err) => {
             let msg = 'an unknown error occurred'
 
-            if (_.isError(resp))
-               throw resp
-
             if (notify)
-               notify.add(
-                  <span> <Glyphicon glyph="warning-sign" /> Login failed: <em>{msg}</em></span>,
-                  'danger')
+               if (err.req && 401 === err.req.status)
+                  notify.add(
+                     <span>
+                        <Glyphicon glyph="warning-sign" />
+                        Login failed: <em>{err.data.error}</em>
+                     </span>, 'danger')
+               else
+                  notify.add(
+                     <span> <Glyphicon glyph="warning-sign" /> Login failed: <em>{msg}</em></span>,
+                     'danger')
 
             this.setState({loading: false})
          })
@@ -85,39 +89,22 @@ export class Login extends React.Component {
             if (!resp)
                return
 
-            switch (req.status) {
-               // Unauthorized
-               case 401:
-                  if (notify)
-                     notify.add(
-                        <span>
-                           <Glyphicon glyph="warning-sign" />
-                           Login failed: <em>{resp.error}</em>
-                        </span>, 'danger')
-
-                  break
-
-               // OK
-               case 200:
-                  if (!this.props.router)
-                     console.log('Login: missing router param, can\'t redirect')
-                  else if (this.props.redirect)
-                     this.props.router.replace(this.props.redirect)
-                  else
-                     console.log('Login: nothing to redirect to...')
-
-                  break
-
-               default:
-                  const {status, statusText} = req
-                  console.log('Login: unknown API response: ' + status + ' ' + statusText, resp)
-                  if (notify)
-                     notify.add(
-                        <span>
-                           <Glyphicon glyph="warning-sign" /> Login failed:
-                           <em>Unknown API response: <b>{req.status} {req.statusText}</b></em>
-                        </span>, 'danger')
-
+            if (200 === req.status) {
+               if (!this.props.router)
+                  console.log('Login: missing router param, can\'t redirect')
+               else if (this.props.redirect)
+                  this.props.router.replace(this.props.redirect)
+               else
+                  console.log('Login: nothing to redirect to...')
+            } else {
+               const {status, statusText} = req
+               console.log('Login: unknown API response: ' + status + ' ' + statusText, resp)
+               if (notify)
+                  notify.add(
+                     <span>
+                        <Glyphicon glyph="warning-sign" /> Login failed:
+                        <em>Unknown API response: <b>{req.status} {req.statusText}</b></em>
+                     </span>, 'danger')
             }
          })
 
@@ -174,6 +161,8 @@ export class Login extends React.Component {
                 disabled={loading}
                 onSubmit={this.login.bind(this)}
                 onClick={this.login.bind(this)}>
+
+                <Spinkit spin={loading} />
 
                 Sign in
               </Button>
