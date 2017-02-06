@@ -46,3 +46,8 @@ input[type="password"]:focus + div .password-strength-text
 .password-strength.strength-3 > span.bar-4 {background-color:orange}
 
 .password-strength.strength-4 > span {background-color:green}
+
+
+.transparent {
+   opacity: 0
+}

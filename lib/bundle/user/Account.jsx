@@ -2,10 +2,12 @@ import React from 'react'
 import _ from 'lodash'
 
 import {PageHeader, Row, Col} from 'react-bootstrap'
-import {Button, ButtonToolbar, Alert} from 'react-bootstrap'
+import {ButtonToolbar, Alert} from 'react-bootstrap'
+
+import {UserService} from '../../User'
 
 import {Loading} from '../../ui'
-import {Form, Input} from '../../forms'
+import {Form, Input, Submit, Reset} from '../../forms'
 
 import IntlPhoneNumbers from './international-phone-codes.json'
 
@@ -49,6 +51,7 @@ const sanitizeNumber = function(number) {
 
    return '+' + number
       .replace(/^(00|\+)/, '')
+      .replace(/[^0-9]*/g, '')
 }
 
 const findCountriesByNumber = function(number) {
@@ -72,6 +75,7 @@ export class PhoneInput extends React.Component {
    static get contextTypes() {
       return {
          input: React.PropTypes.object,
+         submitState: React.PropTypes.any,
          patch: React.PropTypes.object
       }
    }
@@ -95,6 +99,9 @@ export class PhoneInput extends React.Component {
       // mom always said no input is good input
       if (!num)
          return true
+
+      if (15 < num.length)
+         return {error: 'Phone numbers can not exceed 15 digits in length'}
 
       if (!num.match(/^\+/))
          return {error: 'Phone numbers must start with a +', state: 'warn'}
@@ -140,6 +147,8 @@ export class PhoneInput extends React.Component {
    }
 }
 
+// compact password scoring by tm_lv
+// http://stackoverflow.com/questions/948172/password-strength-meter
 function scorePassword(pass) {
    let score = 0
    if (!pass)
@@ -201,14 +210,14 @@ const PasswordStrength = function({score, error}) {
 }
 
 PasswordStrength.propTypes = {
-   score: React.PropTypes.number.isRequired,
-   error: React.PropTypes.number
+   score: React.PropTypes.number,
+   error: React.PropTypes.string
 }
 
 export class Account extends React.Component {
    static get propTypes() {
       return {
-         user: React.PropTypes.object.isRequired
+         user: React.PropTypes.object
       }
    }
 
@@ -233,6 +242,9 @@ export class Account extends React.Component {
    }
 
    validatePw(pw, {param}, input, patch) {
+      if ('password' === param && !pw && !patch.$password)
+         return true
+
       // validate that passwords match
       if ('$password' === param && pw !== patch.password) {
          return '' === patch.password ? true : {error: 'Password does not match'}
@@ -245,27 +257,48 @@ export class Account extends React.Component {
          if (30 > score)
             return {error: 'Password is to weak', score}
 
-         if (10 > pw.length)
-            return {error: 'Password should be atleast 10 characters long', score}
+         if (8 > pw.length)
+            return {error: 'Password should be atleast 8 characters long', score}
 
 
          return {score}
       }
    }
 
+   handleSubmit(ev, newdata) {
+      ev.preventDefault()
+
+      return UserService.update(newdata)
+   }
+
    render() {
       let {user} = this.props
+
+      const transform = (data) => _.omit(data, '$password')
 
       if (!user)
          user = {}
 
       return (
          <div>
-            {this.state.notify || <Alert key="placeholder" bsStyle="inline">&nbsp;</Alert>}
+            {this.state.notify || <Alert key="placeholder" className="transparent">&nbsp;</Alert>}
 
             <PageHeader>Account Settings</PageHeader>
             <Loading loading={_.eq({}, user)}>
-               <Form input={user} onSubmit={(ev) => this.handleSubmit(ev)}>
+               <Form
+                  transform={transform}
+                  input={user}
+                  onSubmit={this.handleSubmit}>
+
+                  <Form.Updated>
+                     Success! Your user details where updated!
+                  </Form.Updated>
+
+                  <Form.Error>
+                     Unfortunately an error occured and we where not able to update
+                     your user.<br /><br />
+                  </Form.Error>
+
                   <Row>
                      <Col xs={12} sm={6}>
                         <label>Email</label>
@@ -276,6 +309,7 @@ export class Account extends React.Component {
                         <Input
                            param="name"
                            label="Full Name"
+                           validate={{size: 48}}
                            type="text" />
                      </Col>
 
@@ -309,21 +343,8 @@ export class Account extends React.Component {
                   <Row style={{marginBottom: '20px'}}>
                      <Col xs={12}>
                         <ButtonToolbar >
-                           <Button
-                              type="submit"
-                              bsStyle="warning"
-                              className="pull-right" onClick={(ev) => this.handleSubmit(ev)}>
-
-                                 Update Account
-                           </Button>
-
-                           <Button
-                              type="reset"
-                              bsStyle="link"
-                              className="pull-right">
-
-                              Reset Form
-                           </Button>
+                           <Submit>Update Account</Submit>
+                           <Reset>Reset Form</Reset>
                         </ButtonToolbar>
                      </Col>
                   </Row>
