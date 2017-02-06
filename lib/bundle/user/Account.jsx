@@ -102,9 +102,6 @@ export class PhoneInput extends React.Component {
       if (num.match(/[^0-9() +-]/))
          return {error: 'Phone numbers may only contain numbers, (, ), - and spaces', state: 'warn'}
 
-      if (15 <= num.replace(/[^0-9]/g, '').length)
-         return {error: 'Phone numbers may not exceed 15 digits', state: 'warn'}
-
       return true
    }
 
@@ -128,7 +125,7 @@ export class PhoneInput extends React.Component {
             type="tel"
             transform={[sanitizeNumber]}
             format={(num) => PhoneInput.formatNumber(num, countries[0])}
-            validate={(num, props) => PhoneInput.validateNumber(num, countries[0], props)}
+            validate={(num) => PhoneInput.validateNumber(num, countries[0])}
             size="16"
             placeholder="+47 79 13 ...">
 
