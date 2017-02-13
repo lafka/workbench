@@ -1,412 +1,381 @@
 import React from 'react'
-import {FormattedRelative, FormattedDate} from 'react-intl'
+import {FormattedRelative} from 'react-intl'
 import _ from 'lodash'
 
-import {TokenStore, TokenService} from '../../Auth/Tokens'
+import {TokensStorage} from '../../storage/Token.jsx'
 
-import {Row, Col} from 'react-bootstrap'
-import {PageHeader, Modal, Alert, Glyphicon} from 'react-bootstrap'
-import {ListGroup, ListGroupItem} from 'react-bootstrap'
-import {FormControl, ButtonToolbar, Button} from 'react-bootstrap'
+import {Spinkit} from '../../ui'
+import {TokenService} from '../../Auth/Tokens'
+
+import {PageHeader, Button} from 'react-bootstrap'
+import {ListGroup, ListGroupItem, Row, Col} from 'react-bootstrap'
+import {Modal, Glyphicon} from 'react-bootstrap'
 
 import moment from 'moment'
 
-export class Tokens extends React.Component {
+const Fingerprint = ({fingerprint}) =>
+   <span className="item fingerprint" title={'Fingerprint: ' + fingerprint}>
+      <code>
+         {7 < fingerprint.length ? fingerprint.slice(0, 7) + '..' : fingerprint}
+      </code>
+   </span>
+
+Fingerprint.propTypes = {
+   fingerprint: React.PropTypes.string.isRequired
+}
+
+const hasExpired = ({expires}) => (new Date()).toISOString() >= expires
+const isRevoked = (token) => !!token.revoked
+
+class Item extends React.Component {
    constructor() {
       super()
 
       this.state = {
-         tokens: [],
-         activeFilter: ['All', undefined],
-         activeFilters: [
-            ['Active', (e) => undefined === e.revoked],
-            ['Inactive', (e) => undefined !== e.revoked],
-            ['All', undefined]],
-         notify: null,
-         addTokenModal: false,
-         // tag for expirey
-         tokenExpires: null,
-         // The iso-8601 expiry date
-         expireDate: null,
-         // how much to increment expiry on usage, -1 for never
-         usageExpireInterval: -1,
-         extendExpirationOnUse: true,
-         tokenName: ''
-      }
-   }
-   componentWillMount() {
-      this._mounted = true
-      TokenStore.addChangeListener(this._changeListener = () => {
-         if (this._mounted)
-            this.setState({tokens: TokenStore.tokens})
-      })
-
-      TokenService.fetchTokens()
-
-      this.state.tokenExpires = 'never'
-      this.state.tokenName = ''
-   }
-
-   componentDidMount() {
-       // make sure we patch the updates
-      this.expires(this.state.tokenExpires || 'never')
-   }
-
-   componentWillUnmount() {
-      this._mounted = false
-      TokenStore.removeChangeListener(this._changeListener)
-   }
-
-   cycleActiveFilters() {
-      this.setState((prevState) => {
-         let head = prevState.activeFilters.shift()
-         prevState.activeFilters.push(head)
-         return {
-            activeFilter: head,
-            activeFilters: prevState.activeFilters
-         }
-      })
-   }
-
-   expires(tag) {
-      let date, expires, usage
-      switch (tag) {
-         case 'never':
-            expires = -1
-            usage = -1
-            break
-
-         case 'day':
-            date = moment().add(1, 'days')
-            expires = date.toISOString()
-            usage = moment().diff(date) * 1000
-            break
-
-         case 'week':
-            date = moment().add(1, 'week')
-            expires = date.toISOString()
-            usage = moment().diff(date) * 1000
-            break
-
-         case 'month':
-            date = moment().add(1, 'month')
-            expires = date.toISOString()
-            usage = moment().diff(date) * 1000
-            break
-
-         case 'half-year':
-            date = moment().add(6, 'months')
-            expires = date.toISOString()
-            usage = moment().diff(date) * 1000
-            break
-
-         case 'year':
-            date = moment().add(1, 'year')
-            expires = date.toISOString()
-            usage = moment().diff(date) * 1000
-            break
-
-         default:
-            return
+         revocation: null
       }
 
-      this.setState({
-         tokenExpires: tag,
-         expireDate: expires,
-         usageExpireInterval: usage
+      this.handleRevoke = this.handleRevoke.bind(this)
+   }
+
+   handleRevoke(ev) {
+      const {token} = this.props
+
+      ev.preventDefault()
+
+      this.setState((state) => {
+         if (state.revocation)
+            return state
+
+         let promise = TokenService.revoke(token.fingerprint, 'user')
+            .then(() => TokenService.fetchTokens())
+
+         promise
+            .catch(() => this.setState({revocation: null}))
+            .done(() => this.setState({revocation: null}))
+
+         return _.set(state, 'revocation', promise)
       })
-   }
-
-   addToken() {
-      let
-         {extendExpirationOnUse, tokenExpires} = this.state,
-         usage = extendExpirationOnUse && 'never' !== tokenExpires ? this.usageExpireInterval : -1,
-         obj = {
-            name: this.state.tokenName,
-            expires: this.state.expireDate,
-            usage_time: usage
-         }
-
-      TokenService.create(obj)
-         .then((resp) => {
-            this.setState({
-               addTokenModal: false,
-               notify:
-                  <Alert
-                     key="success"
-                     onDismiss={() => this.dismissNotification()}
-                     bsStyle="success"
-                     className="expand">
-
-                     The token <code>{resp.fingerprint}</code> was created!
-                  </Alert>})
-         })
-         .catch((resp) => {
-            if (_.isError(resp)) {
-               console.log('caught error', resp.message)
-               console.log(resp.stack)
-            }
-
-            return this.setState({
-               notify:
-                  <Alert
-                     key="error"
-                     onDismiss={() => this.dismissNotification()}
-                     bsStyle="danger"
-                     className="expand">
-
-                     Failed to add new token: {resp.data.error || JSON.stringify(resp.data)}
-                  </Alert>})
-         })
-   }
-
-   revokeToken(token) {
-      TokenService.revoke(token.fingerprint, 'user')
-         .then(() =>
-            this.setState({
-               notify:
-                  <Alert
-                     key="success" onDismiss={() => this.dismissNotification()}
-                     bsStyle="success"
-                     className="expand">
-
-                     The token <code>{token.fingerprint}</code> was revoked
-                  </Alert>}))
-         .catch((resp) => {
-            if (_.isError(resp)) {
-               console.log('caught error', resp.message)
-               console.log(resp.stack)
-            }
-
-            return this.setState({
-               notify:
-                  <Alert
-                     key="error"
-                     onDismiss={() => this.dismissNotification()}
-                     bsStyle="danger"
-                     className="expand">
-
-                     Failed to revoke token <code>{token.fingerprint}</code>:
-                     {resp.data.error || JSON.stringify(resp.data)}
-                  </Alert>})
-         })
-   }
-
-   dismissNotification() {
-      this.setState({notify: null})
    }
 
    render() {
-      let tokens = _.chain(this.state.tokens)
-         .filter(this.state.activeFilter[1])
-         .sortBy('meta.created')
-         .reverse()
-         .value()
-
-      let {extendExpirationOnUse} = this.state
-
-
-      let expired = (when) => this.state.tokenExpires === when ? 'success' : 'default'
+      const
+         {revocation} = this.state,
+         {token} = this.props
 
       return (
-         <div className="tokens tokens-tokens">
-            {this.state.notify}
+         <div className="token">
+            <Fingerprint {...token} />
 
+            <span className="item name" style={{display: 'inline'}}>
+               <strong className="name">{token.name || 'Unnamed Token'}</strong>
+            </span>
+
+            <span className="item created" title={token.meta.created}>
+               <span className="title">Created</span>
+               <FormattedRelative value={token.meta.created} />
+            </span>
+
+            <span className="item used" title={token.meta.used}>
+               <span className="title">Last used</span>
+               {token.meta.used
+                  ? <FormattedRelative value={token.meta.used} />
+                  : 'never'}
+            </span>
+
+            {!hasExpired(token) &&
+               <span className="created" title={token.expires}>
+                  <span className="title">Expires</span>&nbsp;
+                  <FormattedRelative value={token.expires} />
+               </span>}
+
+            {hasExpired(token) && !token.revoked &&
+               <span className="created" title={token.expires}>
+                  Expired <FormattedRelative value={token.expires} />
+               </span>}
+
+            {hasExpired(token) && token.revoked &&
+               <span className="revoked" title={token.revoked.at}>
+                  Revoked <FormattedRelative value={token.revoked.at} />&nbsp;
+                  ({token.revoked.reason})
+               </span>}
+
+            <span className="actions">
+               {(!hasExpired(token) && !isRevoked(token)) &&
+                  <Button
+                     onClick={this.handleRevoke}
+                     disabled={null !== revocation}
+                     className="pull-right btn-sm"
+                     bsStyle="danger">
+
+                     <Spinkit spin={null !== revocation} />
+                     {null === revocation ? 'Revoke' : 'Revoking'}
+                  </Button>}
+            </span>
+         </div>
+      )
+   }
+}
+
+
+Item.bsStyle = function({revoked, expires}) {
+   const now = (new Date()).toISOString()
+
+   // active token
+   if (revoked)
+      return 'danger'
+   else if (now >= expires)
+      return 'warning'
+   else
+      return undefined
+}
+
+Item.propTypes = {
+   token: React.PropTypes.object.isRequired
+}
+
+import {Form, Input, Submit, Reset} from '../../forms'
+
+class EnumInput extends React.Component {
+   render() {
+      const
+         ctx = this.context,
+         {onChange, patch} = ctx,
+         {param, label, values} = this.props
+      return (
+         <div className="enum-input">
+            <label>{label}</label>
+
+            <div className="values">
+               {_.map(values, (value, k) =>
+                  <Button
+                     key={k}
+                     bsStyle={value === patch[param] ? 'info' : 'link'}
+                     onClick={(ev) => onChange(ev, this.props, value)}>
+
+                     {value}
+                  </Button>
+               )}
+            </div>
+         </div>
+      )
+   }
+}
+
+EnumInput.propTypes = {
+   param: React.PropTypes.string.isRequired,
+   className: React.PropTypes.string,
+   label: React.PropTypes.string,
+   transform: React.PropTypes.arrayOf(React.PropTypes.func),
+   values: React.PropTypes.array.isRequired,
+   feedback: React.PropTypes.func
+}
+
+
+EnumInput.contextTypes = {
+   form: React.PropTypes.object,
+   onChange: React.PropTypes.func,
+   input: React.PropTypes.object,
+   patch: React.PropTypes.object,
+   submitState: React.PropTypes.oneOfType([
+      React.PropTypes.string,
+      React.PropTypes.object
+   ])
+}
+
+class View extends React.Component {
+   constructor(p) {
+      super(p)
+
+      this.state = {
+         showModal: p.showModal || false
+      }
+
+      this.onModalToggle = this.onModalToggle.bind(this)
+   }
+
+   onModalToggle(ev) {
+      if (ev)
+         ev.preventDefault()
+
+      this.setState((state) => _.set(state, 'showModal', !state.showModal))
+   }
+
+   render() {
+      const
+         {tokens} = this.props,
+         {showModal} = this.state
+
+      return (
+         <div>
             <PageHeader>
-               API Tokens
+               Your Tokens
+
+            <div className="pull-right">
+               <Button bsStyle="primary" className="btn-sm" onClick={this.onModalToggle}>
+                  Create new Token
+               </Button>
+            </div>
             </PageHeader>
 
-            {0 === this.state.tokens.length && <Alert bsStyle="info">You have no tokens</Alert>}
+            <CreateTokenModal
+               show={showModal}
+               toggle={this.onModalToggle}
+               onceSaved={(p) => p.then(() => this.onModalToggle())} />
 
-            <Row>
-               <Col xs={12} className="text-right">
-                  <ButtonToolbar style={{display: 'inline-block'}}>
-                     <Button onClick={() => this.cycleActiveFilters()}>
-                        Active: {this.state.activeFilter[0]}
-                     </Button>
-
-                     <Button
-                        onClick={() => this.setState({addTokenModal: true})}
-                        bsStyle="success">
-
-                        <Glyphicon glyph="plus">&nbsp;</Glyphicon>
-                        Add new token
-                     </Button>
-                  </ButtonToolbar>
-               </Col>
-            </Row>
-
-            <ListGroup className="token-list">
-               {_.map(tokens, (token, i) =>
+            <ListGroup>
+               {_.chain(tokens || [])
+                     .filter(() => true)
+                     .sortBy('meta.created')
+                     .reverse()
+                     .map((token) =>
 
                   <ListGroupItem
-                     key={i}
+                     bsStyle={Item.bsStyle(token)}
+                     key={token.fingerprint}
                      className="token">
 
-                     <span className="item fingerprint"><code>{token.fingerprint}</code></span>
+                     <Item token={token} />
 
-                     {token.name &&
-                        <span className="item name">
-                           <span className="title">Name:</span>
-                           <strong className="name">{token.name}</strong>
-                        </span>}
-
-                     {!token.revoked &&
-                        <span className="item created" title={token.meta.created}>
-                           <span className="title">Created:</span>
-                           <FormattedRelative value={token.meta.created} />
-                        </span>}
-
-                     {!token.revoked &&
-                        <span className="item expires" title={token.expires}>
-                           <span className="title">Expires:</span>
-                           {-1 === token.expires
-                              ? 'Never'
-                              : <FormattedRelative value={token.expires} />}
-                        </span>}
-
-                     {!token.revoked &&
-                        <span className="item used" title={token.meta.used}>
-                           <span className="title">Last Used:</span>
-                           {token.meta.used
-                              ? <FormattedRelative value={token.meta.used} />
-                              : 'never'}
-                        </span>}
-
-                     {token.revoked &&
-                        <span className="item revoked-at" title={token.revoked.at}>
-                           <span className="title"> Revoked:</span>
-                           <FormattedRelative value={token.revoked.at} />
-                        </span>}
-
-                     {token.revoked && <span className="item revoked-reason">
-                        <span className="title">Revocation Reason:</span> {token.revoked.reason}
-                     </span>}
-
-                     {!token.revoked &&
-                        <Button
-                           onClick={() => this.revokeToken(token)}
-                           className="pull-right"
-                           bsSize="small"
-                           bsStyle="danger">
-
-                           <Glyphicon glyph="remove">&nbsp;</Glyphicon>
-                           Revoke
-                        </Button>}
                   </ListGroupItem>
-               )}
+               ).value()}
 
-               {_.times(Math.max(0, 5 - tokens.length), (n) =>
+               {_.times(Math.max(0, 7 - ((tokens || []).length || 0)), (n) =>
                   <ListGroupItem key={'dummy-' + n}>
                      <span className="dummy-block">
-                        {_.times(32, () => ' ')}
+                        {_.times(32 + Math.round(Math.random()), () => ' ')}
                      </span>
                      &nbsp; &nbsp; &nbsp;
                      <span className="dummy-block">
-                        {_.times(12, () => ' ')}
+                        {_.times(8 + Math.round(Math.random() * 10), () => ' ')}
                      </span>
                   </ListGroupItem>)}
-
-
             </ListGroup>
-
-
-            <Modal
-               className="modal-confirm"
-               show={this.state.addTokenModal}
-               onHide={() => this.setState({addTokenModal: false})}>
-
-               <Modal.Header>
-                  <Modal.Title>Add New Token</Modal.Title>
-               </Modal.Header>
-
-               <Modal.Body>
-                  <FormControl
-                     type="text"
-                     label="Token Name"
-                     placeholder="Human identifiable name for key"
-                     value={this.state.tokenName}
-                     onChange={(ev) => this.setState({tokenName: ev.target.value})}
-                     />
-
-                  <div className="form-group">
-                     <label className="control-label"><span>Token Expires</span></label>
-
-                     <ButtonToolbar>
-                        <Button
-                           onClick={() => this.expires('never')}
-                           bsStyle={expired('never')}>
-
-                           Never
-                        </Button>
-
-                        <Button
-                           onClick={() => this.expires('day')}
-                           bsStyle={expired('day')}>
-
-                           1 Day
-                        </Button>
-
-                        <Button
-                           onClick={() => this.expires('week')}
-                           bsStyle={expired('week')}>
-
-                           1 Week
-                        </Button>
-
-                        <Button
-                           onClick={() => this.expires('month')}
-                           bsStyle={expired('month')}>
-
-                           1 Month
-                        </Button>
-
-                        <Button
-                           onClick={() => this.expires('half-year')}
-                           bsStyle={expired('half-year')}>
-
-                           6 Months
-                        </Button>
-
-                        <Button
-                            onClick={() => this.expires('year')}r
-                            bsStyle={expired('year')}>
-
-                            12 Months
-                        </Button>
-                     </ButtonToolbar>
-
-                     <span className="help-block">
-                        <strong>Expires:</strong>&nbsp;
-                        {'never' === this.state.tokenExpires
-                           ? 'Never'
-                           : <FormattedDate value={this.state.expireDate} />
-                        }
-                     </span>
-                  </div>
-
-                  <FormControl
-                     type="checkbox"
-                     label="Extend expiration on usage"
-                     checked={extendExpirationOnUse}
-                     disabled={'never' === this.state.tokenExpires}
-                     onChange={() => this.setState({extendExpirationOnUse: !extendExpirationOnUse})}
-                     />
-
-               </Modal.Body>
-
-               <Modal.Footer>
-                  <Button onClick={() => this.setState({addTokenModal: false})} bsStyle="link">
-                     Close
-                  </Button>
-
-                  <Button onClick={this.addToken} bsStyle="primary">
-                     Add Token
-                  </Button>
-               </Modal.Footer>
-
-            </Modal>
          </div>
+      )
+   }
+}
+
+View.propTypes = {
+   tokens: React.PropTypes.array.isRequired
+}
+
+const submitToken = function(ev, p) {
+   return TokenService.create(p)
+}
+
+// map of actions to apply to moment
+const expirationValues = {
+   'year': [1, 'year'],
+   'half-year': [6, 'months'],
+   'quarter': [3, 'months'],
+   // always use 30 days to be consistent
+   // when selecting `month` there's the issue of february usage time
+   // which will be 28 or 29 days
+   'month': [30, 'days'],
+   'week': [1, 'week'],
+   'day': [1, 'day'],
+   'never': -1
+}
+
+// map of usage times
+const usageValues = {
+   'year': 86400 * 365 * 1000,
+   'half-year': 86400 * 182 * 1000,
+   'quarter': 86400 * 90 * 1000,
+   'month': 86400 * 30 * 1000,
+   'week': 86400 * 7 * 1000,
+   'day': 86400 * 1000,
+   'never': -1
+}
+
+const mapExpiration = function(interval) {
+   const expiration = expirationValues[interval]
+
+   if (_.isArray(expiration)) {
+      let date, expires
+
+      date = moment().add.apply(moment(), expiration)
+      expires = date.toISOString()
+
+      return [expires, usageValues[interval]]
+   } else {
+      return [expiration, usageValues[interval]]
+   }
+}
+
+const processToken = function(patch) {
+   console.log('patch', patch)
+   const [expires, usage_time] = mapExpiration(patch.expires)
+
+   return _.assign({}, patch, {expires, usage_time})
+}
+
+const CreateTokenModal = ({toggle, show, onceSaved}) =>
+   <Modal
+      className="modal-wait"
+      onHide={toggle}
+      show={show}>
+
+      <Modal.Header closeButton>
+         <span><Glyphicon glyph="plus" />&nbsp;Create new Token</span>
+      </Modal.Header>
+
+      <Form
+         transform={processToken}
+         onSubmit={!onceSaved ? submitToken : (...args) => onceSaved(submitToken(...args))}
+         defaultValues={{expires: 'month'}}>
+         <Modal.Body>
+               <Form.Error>
+                  Some error occured
+               </Form.Error>
+
+               <Row>
+                  <Col xs={6}>
+                     <Input
+                        param="name"
+                        label="Token Name"
+                        validate={{size: 48}}
+                        type="text" />
+                  </Col>
+
+                  <Col xs={6}>
+                     <Input
+                        param="usage_time"
+                        label="Extend Expiry on usage"
+                        type="checkbox" />
+                  </Col>
+
+                  <Col xs={12}>
+                     <EnumInput
+                        param="expires"
+                        label="Token Expiration"
+                        values={_.keys(expirationValues)} />
+                  </Col>
+               </Row>
+         </Modal.Body>
+
+         <Modal.Footer>
+            <Submit>Create Token</Submit>
+            <Reset>Reset Form</Reset>
+         </Modal.Footer>
+      </Form>
+   </Modal>
+
+CreateTokenModal.propTypes = {
+   toggle: React.PropTypes.func.isRequired,
+   show: React.PropTypes.bool.isRequired,
+   onceSaved: React.PropTypes.func
+}
+
+export class Tokens extends React.Component {
+   render() {
+      const props = this.props
+
+      return (
+         <TokensStorage {...props}>
+            <View tokens={[]} />
+         </TokensStorage>
       )
    }
 }

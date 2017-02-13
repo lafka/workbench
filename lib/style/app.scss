@@ -61,6 +61,10 @@ input[type="password"]:focus + div .password-strength-text
       .title:after {
          content: ": "
       }
+
+      &:first-child {
+         min-width: 0;
+      }
    }
 
    .actions > .pull-right, .actions > .pull-left {
@@ -68,3 +72,31 @@ input[type="password"]:focus + div .password-strength-text
    }
 
 }
+
+
+.dummy-block {
+   background: #eee;
+   font-family: monospace;
+}
+
+/**
+ *  modal styles
+ */
+.modal-error .modal-header   { background-color: #d2322d; }
+.modal-wait .modal-header    { background-color: #428bca; }
+.modal-notify .modal-header  { background-color: #eeeeee; }
+.modal-confirm .modal-header { background-color: #333333; }
+
+.modal-error   .modal-header span, .modal-error   .modal-header h4,
+.modal-wait    .modal-header span, .modal-wait    .modal-header h4,
+.modal-confirm .modal-header span, .modal-confirm .modal-header h4 { color: #ffffff; }
+
+.modal-contain {
+  position: relative;
+  min-height: 400px;
+
+  .modal, .modal-backdrop { position: absolute; overflow: hidden }
+  .modal-backdrop { background: whitesmoke; opacity: 0.7; }
+}
+
+.enum-input .values button {margin-right: 1em;}

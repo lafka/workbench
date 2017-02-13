@@ -88,8 +88,7 @@ class Item extends React.Component {
                </span>}
 
             <span className="actions">
-               {(!hasExpired(session) && !isRevoked(session)) && null}
-
+               {(!hasExpired(session) && !isRevoked(session)) &&
                   <Button
                      onClick={this.handleRevoke}
                      disabled={null !== revocation}
@@ -98,7 +97,7 @@ class Item extends React.Component {
 
                      <Spinkit spin={null !== revocation} />
                      {null === revocation ? 'Revoke' : 'Revoking'}
-                  </Button>
+                  </Button>}
             </span>
          </div>
       )
