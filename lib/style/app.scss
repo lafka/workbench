@@ -51,3 +51,20 @@ input[type="password"]:focus + div .password-strength-text
 .transparent {
    opacity: 0
 }
+
+.token {
+   span.item {
+      display: inline-block;
+      min-width: 18%;
+      margin-right: 2em;
+
+      .title:after {
+         content: ": "
+      }
+   }
+
+   .actions > .pull-right, .actions > .pull-left {
+      margin-top: -5px;
+   }
+
+}

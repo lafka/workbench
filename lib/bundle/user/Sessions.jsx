@@ -2,194 +2,180 @@ import React from 'react'
 import {FormattedRelative} from 'react-intl'
 import _ from 'lodash'
 
+import {SessionsStorage} from '../../storage/Session.jsx'
+
 import {AuthStore} from '../../Auth'
-import {TokenStore, TokenService} from '../../Auth/Tokens'
-
-import {Row, Col} from 'react-bootstrap'
-import {PageHeader, Alert} from 'react-bootstrap'
+import {Spinkit} from '../../ui'
+import {TokenService} from '../../Auth/Tokens'
+//
+// import {Row, Col} from 'react-bootstrap'
+import {PageHeader, Button} from 'react-bootstrap'
 import {ListGroup, ListGroupItem} from 'react-bootstrap'
-import {ButtonToolbar, Button, Glyphicon} from 'react-bootstrap'
+// import {ButtonToolbar, Button, Glyphicon} from 'react-bootstrap'
 
-export class Sessions extends React.Component {
+const hasExpired = ({expires}) => (new Date()).toISOString() >= expires
+const isRevoked = (session) => !!session.revoked
+
+class Item extends React.Component {
    constructor() {
       super()
 
       this.state = {
-         sessions: [],
-         activeFilter: ['All', undefined],
-         activeFilters: [
-            ['Active', (e) => undefined === e.revoked],
-            ['Inactive', (e) => undefined !== e.revoked],
-            ['All', undefined]],
-         notify: null
-      }
-   }
-   componentWillMount() {
-      this._mounted = true
-      TokenStore.addChangeListener(this._changeListener = () => {
-         if (this._mounted)
-            this.setState({sessions: TokenStore.sessions})
-      })
-
-      TokenService.fetchSessions()
-   }
-
-   componentWillUnmount() {
-      this._mounted = false
-      TokenStore.removeChangeListener(this._changeListener)
-   }
-
-   cycleActiveFilters() {
-      this.setState((prevState) => {
-         let head = prevState.activeFilters.shift()
-         prevState.activeFilters.push(head)
-         return {
-            activeFilter: head,
-            activeFilters: prevState.activeFilters
-         }
-      })
-   }
-
-   revokeSession(session, force) {
-      if (session.fingerprint === AuthStore.auth.fingerprint && !force) {
-         this.setState({notify:
-               <Alert
-                  key="info"
-                  onDismiss={() => this.dismissNotification()}
-                  bsStyle="warning"
-                  className="expand">
-
-                  Can't revoke the current session! To revoke it, do a normal logout instead.
-               </Alert>})
-         return
+         revocation: null
       }
 
-      TokenService.revoke(session.fingerprint, 'user')
-         .then(() =>
-            this.setState({notify:
-                  <Alert
-                     key="success"
-                     onDismiss={() => this.dismissNotification()}
-                     bsStyle="success"
-                     className="expand">
-
-                     The session <code>{session.fingerprint}</code> was revoked
-                  </Alert>}))
-         .catch((resp) =>
-            this.setState({notify:
-                  <Alert
-                     key="error"
-                     onDismiss={() => this.dismissNotification()}
-                     bsStyle="danger"
-                     className="expand">
-
-                     Failed to revoke session <code>{session.fingerprint}</code>:
-                     {resp.data.error || JSON.stringify(resp.data)}
-                  </Alert>}))
+      this.handleRevoke = this.handleRevoke.bind(this)
    }
 
-   dismissNotification() {
-      this.setState({notify: null})
+   handleRevoke(ev) {
+      const {session} = this.props
+
+      ev.preventDefault()
+
+      this.setState((state) => {
+         if (state.revocation)
+            return state
+
+         let promise = TokenService.revoke(session.fingerprint, 'user')
+            .then(() => TokenService.fetchSessions())
+
+         promise
+            .catch(() => this.setState({revocation: null}))
+            .done(() => this.setState({revocation: null}))
+
+         return _.set(state, 'revocation', promise)
+      })
    }
 
    render() {
-      let myFingerprint = AuthStore.auth.fingerprint
+      const
+         {revocation} = this.state,
+         {session} = this.props
 
       return (
-         <div className="tokens tokens-session">
-            {this.state.notify}
+         <div className="token">
+            <Fingerprint {...session} />
 
-            <PageHeader>
-               Sessions
-            </PageHeader>
+            <span><strong className="name">{session.name}</strong></span>
 
-            {0 === this.state.sessions.length && <Alert bsStyle="info">You have no sessions</Alert>}
+            <span className="item created" title={session.meta.created}>
+               <span className="title">Created</span>
+               <FormattedRelative value={session.meta.created} />
+            </span>
 
+            <span className="item used" title={session.meta.used}>
+               <span className="title">Last used</span>
+               {session.meta.used
+                  ? <FormattedRelative value={session.meta.used} />
+                  : 'never'}
+            </span>
 
-            <Row>
-               <Col xs={12} className="text-right">
-                  <ButtonToolbar style={{display: 'inline-block'}}>
-                     <Button onClick={() => this.cycleActiveFilters()}>
-                        Active: {this.state.activeFilter[0]}
-                     </Button>
-                  </ButtonToolbar>
-               </Col>
-            </Row>
+            {!hasExpired(session) &&
+               <span className="created" title={session.expires}>
+                  <span className="title">Expires</span>&nbsp;
+                  <FormattedRelative value={session.expires} />
+               </span>}
 
-            <ListGroup className="token-list">
-               {_.chain(this.state.sessions)
-                     .filter(this.state.activeFilter[1])
-                     .sortBy('meta.created')
-                     .reverse()
-                     .map((session) =>
+            {hasExpired(session) && !session.revoked &&
+               <span className="created" title={session.expires}>
+                  Expired <FormattedRelative value={session.expires} />
+               </span>}
 
-                  <ListGroupItem
-                     bsStyle={myFingerprint === session.fingerprint ? 'info' : undefined}
-                     key={session.fingerprint}
-                     className="token">
+            {hasExpired(session) && session.revoked &&
+               <span className="revoked" title={session.revoked.at}>
+                  Revoked <FormattedRelative value={session.revoked.at} />&nbsp;
+                  ({session.revoked.reason})
+               </span>}
 
-                     <span className="item fingerprint"><code>{session.fingerprint}</code></span>
+            <span className="actions">
+               {(!hasExpired(session) && !isRevoked(session)) && null}
 
-                     {session.name &&
-                        <span><strong className="name">{session.name}</strong></span>}
+                  <Button
+                     onClick={this.handleRevoke}
+                     disabled={null !== revocation}
+                     className="pull-right btn-sm"
+                     bsStyle="danger">
 
-                     {!session.revoked &&
-                        <span className="item created" title={session.meta.created}>
-                           <span className="title">Created:</span>
-                           <FormattedRelative value={session.meta.created} />
-                        </span>}
-
-                     {!session.revoked &&
-                        <span className="item expires" title={session.expires}>
-                           <span className="title">Expires:</span>
-                           <FormattedRelative value={session.expires} />
-                        </span>}
-
-                     {!session.revoked &&
-                        <span className="item used" title={session.meta.used}>
-                           <span className="title">
-                              Last Used:</span> {session.meta.used
-                                 ? <FormattedRelative value={session.meta.used} />
-                                 : 'never'}
-                        </span>}
-
-                     {session.revoked &&
-                        <span className="item revoked-at" title={session.revoked.at}>
-                           <span className="title">
-                              Revoked:</span> <FormattedRelative value={session.revoked.at} />
-                        </span>}
-
-                     {session.revoked &&
-                        <span className="item revoked-reason">
-                           <span className="title">
-                              Revocation Reason:</span> {session.revoked.reason}
-                        </span>}
-
-                     {!session.revoked &&
-                        <Button
-                           onClick={() => this.revokeSession(session)}
-                           className="pull-right"
-                           bsSize="small"
-                           bsStyle="danger">
-
-                           <Glyphicon glyph="remove">&nbsp;</Glyphicon>
-                           Revoke
-                        </Button>}
-                  </ListGroupItem>
-               ).value()}
-
-               {_.times(Math.max(0, 7 - this.state.sessions.length), (n) =>
-                  <ListGroupItem key={'dummy-' + n}>
-                     <span className="dummy-block">
-                        {_.times(32 + Math.round(Math.random()), () => ' ')}
-                     </span>
-                     &nbsp; &nbsp; &nbsp;
-                     <span className="dummy-block">
-                        {_.times(8 + Math.round(Math.random() * 10), () => ' ')}
-                     </span>
-                  </ListGroupItem>)}
-            </ListGroup>
+                     <Spinkit spin={null !== revocation} />
+                     {null === revocation ? 'Revoke' : 'Revoking'}
+                  </Button>
+            </span>
          </div>
       )
    }
 }
+
+Item.bsStyle = function({fingerprint, revoked, expires}) {
+   const
+      myFingerprint = AuthStore.auth.fingerprint,
+      now = (new Date()).toISOString()
+
+   // active token
+   if (myFingerprint === fingerprint)
+      return 'success'
+   else if (revoked)
+      return 'danger'
+   else if (now >= expires)
+      return 'warning'
+   else
+      return undefined
+}
+
+Item.propTypes = {
+   session: React.PropTypes.object.isRequired
+}
+
+
+const View = ({sessions}) =>
+   <div>
+      <PageHeader>Your Sessions</PageHeader>
+
+      <ListGroup>
+         {_.chain(sessions)
+               .filter(() => true)
+               .sortBy('meta.created')
+               .reverse()
+               .map((session) =>
+
+            <ListGroupItem
+               bsStyle={Item.bsStyle(session)}
+               key={session.fingerprint}
+               className="token">
+
+               <Item session={session} />
+
+            </ListGroupItem>
+         ).value()}
+
+         {_.times(Math.max(0, 7 - sessions.length), (n) =>
+            <ListGroupItem key={'dummy-' + n}>
+               <span className="dummy-block">
+                  {_.times(32 + Math.round(Math.random()), () => ' ')}
+               </span>
+               &nbsp; &nbsp; &nbsp;
+               <span className="dummy-block">
+                  {_.times(8 + Math.round(Math.random() * 10), () => ' ')}
+               </span>
+            </ListGroupItem>)}
+      </ListGroup>
+   </div>
+
+
+View.propTypes = {
+   sessions: React.PropTypes.array.isRequired
+}
+
+const Fingerprint = ({fingerprint}) =>
+   <span className="item fingerprint" title={'Fingerprint: ' + fingerprint}>
+      <code>
+         {7 < fingerprint.length ? fingerprint.slice(0, 7) + '..' : fingerprint}
+      </code>
+   </span>
+
+Fingerprint.propTypes = {
+   fingerprint: React.PropTypes.string.isRequired
+}
+
+export const Sessions = (props) => <SessionsStorage {...props}>
+   <View sessions={[]} />
+</SessionsStorage>
