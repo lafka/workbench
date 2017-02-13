@@ -2,7 +2,7 @@ import React from 'react'
 import _ from 'lodash'
 
 import {PageHeader, Row, Col} from 'react-bootstrap'
-import {ButtonToolbar, Alert} from 'react-bootstrap'
+import {ButtonToolbar} from 'react-bootstrap'
 
 import {UserService} from '../../User'
 
@@ -281,9 +281,8 @@ export class Account extends React.Component {
 
       return (
          <div>
-            {this.state.notify || <Alert key="placeholder" className="transparent">&nbsp;</Alert>}
-
             <PageHeader>Account Settings</PageHeader>
+
             <Loading loading={_.eq({}, user)}>
                <Form
                   transform={transform}
