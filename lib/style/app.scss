@@ -123,3 +123,28 @@ input[type="password"]:focus + div .password-strength-text
       width: 75%;
    }
 }
+
+.type-squares {
+   position: relative;
+}
+
+.type-squares > .square {
+   width: 45%;
+   float: left;
+   display: block;
+   background: #eee;
+   margin-bottom: 1em;
+   padding: 9px 15px 7px;
+
+   &:nth-child(2n) {
+      float: right;
+   }
+
+   &:last-child {
+      clear: right;
+   }
+/*
+                     margin: 0 1.25% 0.5em;
+                     padding: '9px 15px 7px',
+*/
+}

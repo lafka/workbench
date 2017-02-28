@@ -2,7 +2,7 @@ import React from 'react'
 import _ from 'lodash'
 
 import {Row, Col} from 'react-bootstrap'
-import {Glyphicon, ButtonToolbar} from 'react-bootstrap'
+import {Glyphicon, Button, ButtonToolbar, PageHeader} from 'react-bootstrap'
 
 import {SetupGuide, SetupSteps} from '../setup-guide'
 import {AddressEncoder, Loading} from '../../../ui'
@@ -90,13 +90,19 @@ export class Overview extends React.Component {
                   </div>
                </div>
 
-               <Form onSubmit={this.handleSubmit} input={network}>
+               <Form
+                  onSubmit={this.handleSubmit}
+                  transform={(input) => _.omit(input, (v, k) => k.match(/^\$/))}
+                  input={network}>
+
                   <Form.Updated>Network was successfully updated</Form.Updated>
                   <Form.Error>Some error occurred during submit</Form.Error>
 
                   <Info network={network} />
 
-                  <ButtonToolbar >
+                  <Types network={network} />
+
+                  <ButtonToolbar style={{clear: 'both'}}>
                      <Submit>Update Network</Submit>
                      <Reset>Reset Form</Reset>
                   </ButtonToolbar>
@@ -200,4 +206,102 @@ const Info = ({network}) =>
 
 Info.propTypes = {
    network: React.PropTypes.object.isRequired
+}
+
+//
+// const Channels = () =>
+//   <div>
+//      <PageHeader>Channels</PageHeader>
+//   </div>
+
+const Types = ({network}, {patch, onChange}) => {
+   const
+      defaultType = _.get(patch, 'provision.type', network.provision.type),
+      currentTypes = _.get(patch, 'types', network.types),
+      addType = (ev) => {
+         ev.preventDefault()
+
+         onChange(ev, {param: '$newType'}, undefined)
+         onChange(ev, {param: 'types'}, currentTypes.concat([patch.$newType]))
+      }
+
+   if (Button || onChange || defaultType || currentTypes)
+      window.y = null
+
+   return (
+      <div style={{clear: 'both'}}>
+         <PageHeader>Types</PageHeader>
+
+            <div className="type-squares">
+               {_.map(currentTypes, (type, idx) =>
+                  <div className="square" key={idx}>
+                     <span>{type}</span>
+
+                     <span className="pull-right">
+                        <Button
+                           onClick={(ev) => onChange(ev, {param: 'provision.type'}, type)}
+                           bsSize="xsmall"
+                           bsStyle="success"
+                           value={type}
+                           disabled={defaultType === type}>
+
+                           Make default
+                        </Button>
+
+                        &nbsp;
+
+                        <Button
+                           onClick={(ev) => onChange(ev,
+                                                     {param: 'types'},
+                                                     _.without(currentTypes, type))}
+                           bsSize="xsmall"
+                           bsStyle="danger"
+                           disabled={defaultType === type}
+                           value={type}>
+                           Remove
+                        </Button>
+
+                     </span>
+                  </div>
+               )}
+
+               <div className="square"
+                 style={{padding: '5px 15px 4px'}}>
+
+                  <div className="input-group">
+                     <Input
+                        feedback={null}
+                        className="form-control input-sm"
+                        param="$newType"
+                        placeholder="New type name ..."/>
+
+                     <span className="input-group-btn">
+                        <Button
+                           type="submit"
+                           onClick={addType}
+                           bsSize="xsmall"
+                           bsStyle="link">
+
+                           Add Type
+                        </Button>
+                     </span>
+                  </div>
+               </div>
+            </div>
+      </div>)
+}
+
+Types.propTypes = {
+   network: React.PropTypes.object.isRequired
+}
+
+Types.contextTypes = {
+   form: React.PropTypes.object,
+   onChange: React.PropTypes.func,
+   input: React.PropTypes.object,
+   patch: React.PropTypes.object,
+   submitState: React.PropTypes.oneOfType([
+      React.PropTypes.string,
+      React.PropTypes.object
+   ])
 }
