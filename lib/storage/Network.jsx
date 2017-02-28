@@ -1,7 +1,7 @@
 import React from 'react'
 import _ from 'lodash'
 
-import {NetworkStore, NetworkService} from '../stores/Network'
+import {NetworkStore, NetworkService} from '../api/network'
 
 export class NetworksStorage extends React.Component {
    static get propTypes() {
