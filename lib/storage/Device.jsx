@@ -1,7 +1,7 @@
 import React from 'react'
 import _ from 'lodash'
 
-import {DeviceStore, DeviceService} from '../stores/Device'
+import {DeviceStore, DeviceService} from '../api/device'
 
 export class DevicesStorage extends React.Component {
    static get propTypes() {
