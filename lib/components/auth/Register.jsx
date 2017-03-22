@@ -1,8 +1,8 @@
 import React from 'react'
-import _ from 'lodash'
 import {Button, Glyphicon} from 'react-bootstrap'
 
 import {AuthService} from '../../Auth'
+import {Spinkit} from '../../ui'
 
 export class Register extends React.Component {
    static get propTypes() {
@@ -88,21 +88,26 @@ export class Register extends React.Component {
       }
 
       let promise = AuthService.register(email, password)
-         .catch((resp) => {
+         .catch((err) => {
+            this.setState({loading: false})
+
             let msg = 'An unknown error occured'
 
-            if (_.isError(resp))
-               throw resp
-            else
-               msg = resp.data.error || JSON.stringify(resp.data)
+            console.log(err.req)
 
             if (notify)
-               notify.add(
-                  <span>
-                     <Glyphicon glyph="warning-sign" /> Registration failed: <em>{msg}</em>
-                  </span>, 'danger')
-
-            this.setState({loading: false})
+               if (err.req || 201 !== err.req.status)
+                  notify.add(
+                     <span>
+                        <Glyphicon glyph="warning-sign" />
+                        Registration failed: <em>{err.data.error}</em>
+                     </span>, 'danger')
+               else
+                  notify.add(
+                     <span>
+                        <Glyphicon glyph="warning-sign" />
+                        Registration failed: <em>{msg}</em>
+                     </span>, 'danger')
          })
          .then(() => {
             this.setState({loading: false})
@@ -115,6 +120,8 @@ export class Register extends React.Component {
    }
 
    render() {
+      const {loading} = this.state
+
       return (
          <form onSubmit={this.register.bind(this)}>
            <div className="form-group">
@@ -167,6 +174,8 @@ export class Register extends React.Component {
                type="submit"
                onSubmit={this.register.bind(this)}
                onClick={this.register.bind(this)}>
+
+               <Spinkit spin={loading} />
                Register
              </Button>
            </div>
@@ -174,5 +183,3 @@ export class Register extends React.Component {
       )
    }
 }
-
-
