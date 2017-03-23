@@ -1,20 +1,20 @@
 import React from 'react'
-import _ from 'lodash'
 
 export class AddressEncoder extends React.Component {
    static get propTypes() {
       return {
-         value: React.PropTypes.number.isRequired
+         value: React.PropTypes.number.isRequired,
+         pretty: React.PropTypes.bool
       }
    }
 
-   static encode(addr) {
+   static encode(addr, pretty) {
       switch (AddressEncoder.format) {
          case 'hex':
-            return AddressEncoder.encodeHex(addr, AddressEncoder.endian)
+            return AddressEncoder.encodeHex(addr, AddressEncoder.endian, pretty)
 
          case 'bin':
-            return AddressEncoder.encodeBin(addr, AddressEncoder.endian)
+            return AddressEncoder.encodeBin(addr, AddressEncoder.endian, pretty)
 
          case 'dec':
          default:
@@ -22,7 +22,7 @@ export class AddressEncoder extends React.Component {
       }
    }
 
-   static encodeHex(addr, endian) {
+   static encodeHex(addr, endian, pretty) {
       let parts = [
          (addr >> 24) & 255,
          (addr >> 16) & 255,
@@ -30,12 +30,12 @@ export class AddressEncoder extends React.Component {
          (addr >> 0) & 255
       ]
 
-      return ('big' === endian ? parts : _.reverse(parts)).map(
+      return ('big' === endian ? parts : parts.reverse()).map(
          (n) => ('0' + n.toString(16)).slice(-2)
-      ).join(':')
+      ).join(pretty ? ' : ' : ':')
    }
 
-   static encodeBin(addr, endian) {
+   static encodeBin(addr, endian, pretty) {
       let parts = [
          (addr >> 24) & 255,
          (addr >> 16) & 255,
@@ -43,7 +43,7 @@ export class AddressEncoder extends React.Component {
          (addr >> 0) & 255
       ]
 
-      return ('big' === endian ? parts : _.reverse(parts)).join('.')
+      return ('big' === endian ? parts : parts.reverse()).join(pretty ? ' . ' : '.')
    }
 
    static encodeDec(addr, endian) {
@@ -57,8 +57,9 @@ export class AddressEncoder extends React.Component {
    }
 
    render() {
+      let {pretty} = this.props
       return (
-         <span className="addr">{AddressEncoder.encode(this.props.value)}</span>
+         <span className="addr">{AddressEncoder.encode(this.props.value, pretty)}</span>
       )
    }
 }
