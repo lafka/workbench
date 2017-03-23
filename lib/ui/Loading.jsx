@@ -7,56 +7,27 @@ export class Loading extends React.Component {
    static get propTypes() {
       return {
          children: React.PropTypes.node.isRequired,
-         loading: React.PropTypes.bool.isRequired
+         loading: React.PropTypes.bool.isRequired,
+         overlay: React.PropTypes.bool
       }
    }
 
-   componentDidMount() {
-      window.addEventListener('resize', this._resize = this._resize || this.handleResize.bind(this))
-      // align first!
-      setTimeout(this._resize, 0)
-   }
+   get loader() {
+      return (
+         <div className="loader" ref="loader">
+            <div className="square clear" />
+            <div className="square" />
+            <div className="square last" />
 
-   componentDidUpdate() {
-      // align first!
-      this.handleResize()
-   }
+            <div className="square clear" />
+            <div className="square" />
+            <div className="square last" />
 
-   componentWillUnmount() {
-      window.removeEventListener('resize', this._resize)
-   }
-
-   handleResize(ev) {
-      if (ev)
-         ev.preventDefault()
-
-      // check that loading is not done
-      if (!this.refs.loader) {
-         window.removeEventListener('resize', this._resize)
-         return
-      }
-
-      let
-         loader = this.refs.loader,
-         boundryBottom = document.body.getBoundingClientRect().bottom
-
-
-      // loader.style.marginTop = Math.round(top / 2) + 'px'
-      // loader.style.marginLeft = Math.round(left / 2) + 'px'
-      const parentRect = loader.parentElement.getClientRects()[0]
-      loader.style.marginTop = (((boundryBottom - parentRect.top) / 2) - 30) + 'px'
-      loader.style.marginLeft = ((loader.parentElement.getClientRects()[0].width / 2) - 30) + 'px'
-   }
-
-   componentWillReceiveProps(next) {
-      if (!this.refs.loader) {
-         return
-      }
-
-      if (!next.loading) {
-         this.refs.loader.style.marginTop = 'inherit'
-         this.refs.loader.style.marginLeft = 'inherit'
-      }
+            <div className="square clear" />
+            <div className="square" />
+            <div className="square last" />
+         </div>
+      )
    }
 
    render() {
@@ -67,20 +38,14 @@ export class Loading extends React.Component {
       else if (!children)
          console.log('ERROR: Loading expected String or react element... got: ' + typeof children)
 
-      if (this.props.loading)
+      if (this.props.loading && !this.props.overlay)
+         return this.loader
+      else if (this.props.loading && this.props.overlay)
          return (
-            <div className="loader" ref="loader">
-               <div className="square clear" />
-               <div className="square" />
-               <div className="square last" />
-
-               <div className="square clear" />
-               <div className="square" />
-               <div className="square last" />
-
-               <div className="square clear" />
-               <div className="square" />
-               <div className="square last" />
+            <div className="loader-wrapper" style={{position: 'relative'}}>
+               {this.loader}
+               <div className="overlay">&nbsp;</div>
+               {children}
             </div>
          )
       else
