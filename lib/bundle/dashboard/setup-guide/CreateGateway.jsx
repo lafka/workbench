@@ -69,16 +69,16 @@ export class CreateGateway extends React.Component {
    skipSetup() {
       let
          {router, params, routes} = this.props,
-         newRoutes = _.slice(routes, 0, -1).concat([{path: 'overview'}]),
+         newRoutes = _.slice(routes, 0, -1),
          nextPath = _.map(newRoutes, r => r.path)
+                     .slice(0, -1)
+                     .concat(['network', this.props.network.key])
                      .join('/')
-                     .replace('//', '/'),
-         url
+                     .replace('//', '/')
 
       SetupGuide.skipSetup(this.props.network)
 
-      url = _.reduce(params, (acc, v, k) => acc.replace(':' + k, v), nextPath)
-      router.push(url)
+      router.push(nextPath)
    }
 
    get Form() {
