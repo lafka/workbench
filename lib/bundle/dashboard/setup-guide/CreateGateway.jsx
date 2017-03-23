@@ -154,8 +154,8 @@ export class CreateGateway extends React.Component {
 
                <Col md={6}>
                   <p style={{marginTop: '110px', marginBottom: '2rem'}}>
-                     A Tinymesh network requires a connector to relay data between
-                     the Tinymesh radio network and the Tinymesh Cloud.
+                     Tinymesh Networks communicates through Gateway Devices.
+                     The Gateway we define represents one of your physical gateways.
                   </p>
 
                   <p>
