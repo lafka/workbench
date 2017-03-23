@@ -20,7 +20,6 @@ export class CreateGateway extends React.Component {
          location: React.PropTypes.object.isRequired,
          routes: React.PropTypes.array.isRequired,
          router: React.PropTypes.object.isRequired,
-         params: React.PropTypes.object.isRequired,
          network: React.PropTypes.object.isRequired
       }
    }
@@ -39,7 +38,7 @@ export class CreateGateway extends React.Component {
    componentWillMount() {
       const {network} = this.props
 
-      if ("true" !== this.props.location.query.autoCreate)
+      if ('true' !== this.props.location.query.autoCreate)
          return
 
       // if any custom work has been done, consider ourselves done
@@ -48,7 +47,7 @@ export class CreateGateway extends React.Component {
 
       this.setState({creatingGateway: true, error: false})
 
-      const payload = {name: "Gateway #1", address: 0, type: "gateway"}
+      const payload = {name: 'Gateway #1', address: 0, type: 'gateway'}
       DeviceService.create(network.key, payload)
          .catch(() => this.setState({creatingGateway: false, error: true}))
          .done(() => this.setState({creatingGateway: false}))
@@ -68,7 +67,7 @@ export class CreateGateway extends React.Component {
 
    skipSetup() {
       let
-         {router, params, routes} = this.props,
+         {router, routes} = this.props,
          newRoutes = _.slice(routes, 0, -1),
          nextPath = _.map(newRoutes, r => r.path)
                      .slice(0, -1)
@@ -144,7 +143,6 @@ export class CreateGateway extends React.Component {
          InnerForm = this.Form,
          UIDText = 'All Tinymesh devices have a unique address',
          NIDText = 'Gateways can be configured with a Network ID used for identification'
-
 
 
       return (
