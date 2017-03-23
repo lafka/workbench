@@ -8,7 +8,7 @@ export class DevicesStorage extends React.Component {
       return {
          nid: React.PropTypes.string.isRequired,
          children: React.PropTypes.node.isRequired,
-         onChange: React.PropTypes.func.isRequired,
+         onChange: React.PropTypes.func,
          filter: React.PropTypes.func
       }
    }
