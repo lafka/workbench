@@ -14,9 +14,10 @@ import {Form, Input, Submit} from '../../../forms'
 import {AddressEncoder} from '../../../ui'
 import {parse as decodeAddress} from '../../../util/address.js'
 
-class DeviceForm extends React.Component {
+export class CreateGateway extends React.Component {
    static get propTypes() {
       return {
+         location: React.PropTypes.object.isRequired,
          routes: React.PropTypes.array.isRequired,
          router: React.PropTypes.object.isRequired,
          params: React.PropTypes.object.isRequired,
@@ -26,14 +27,11 @@ class DeviceForm extends React.Component {
 
    constructor() {
       super()
-      this.state = {
-         loading: false
-      }
+      this.state = {}
 
       this.skipSetup = this.skipSetup.bind(this)
       this.handleSubmit = this.handleSubmit.bind(this)
    }
-
    handleSubmit(ev, patch) {
       const {network} = this.props
       ev.preventDefault()
@@ -56,8 +54,8 @@ class DeviceForm extends React.Component {
       router.push(url)
    }
 
-   render() {
-      return (
+   get Form() {
+      return () =>
          <div>
             <div className="page-header">
                <h4>Create Gateway</h4>
@@ -103,35 +101,36 @@ class DeviceForm extends React.Component {
                </ButtonToolbar>
             </Form>
          </div>
+   }
+
+   render() {
+      let
+         InnerForm = this.Form,
+         UIDText = 'All Tinymesh devices have a unique address',
+         NIDText = 'Gateways can be configured with a Network ID used for identification'
+
+
+      return (
+         <Row style={{marginTop: '3rem', position: 'relative'}}>
+            <Col md={6}>
+               <InnerForm />
+            </Col>
+
+            <Col md={6}>
+               <p style={{marginTop: '110px', marginBottom: '2rem'}}>
+                  A Tinymesh network requires a connector to relay data between
+                  the Tinymesh radio network and the Tinymesh Cloud.
+               </p>
+
+               <p>
+                  The gateway authenticates by using a combination of&nbsp;
+                  <Tooltip title={UIDText}><a>Unique ID (UID)</a></Tooltip> and&nbsp;
+                  <Tooltip title={NIDText}><a>Network ID (NID)</a></Tooltip>,
+                  you can use `<code>0</code>` as UID if you are
+                  unsure about your gateways UID.
+               </p>
+            </Col>
+         </Row>
       )
    }
-}
-
-export const CreateGateway = (props) => {
-   let
-      UIDText = 'All Tinymesh devices have a unique address',
-      NIDText = 'Gateways can be configured with a Network ID used for identification'
-
-   return (
-      <Row style={{marginTop: '3rem'}}>
-         <Col md={6}>
-            <DeviceForm {...props} />
-         </Col>
-
-         <Col md={6}>
-            <p style={{marginTop: '110px', marginBottom: '2rem'}}>
-               A Tinymesh network requires a connector to relay data between
-               the Tinymesh radio network and the Tinymesh Cloud.
-            </p>
-
-            <p>
-               The gateway authenticates by using a combination of&nbsp;
-               <Tooltip title={UIDText}><a>Unique ID (UID)</a></Tooltip> and&nbsp;
-               <Tooltip title={NIDText}><a>Network ID (NID)</a></Tooltip>,
-               you can use `<code>0</code>` as UID if you are
-               unsure about your gateways UID.
-            </p>
-         </Col>
-      </Row>
-   )
 }

@@ -24,6 +24,18 @@
    top: 24px
 }
 
+.form .feedback-inline {
+   position: relative;
+
+   .help-block {
+     text-align: right;
+     margin-right: 3em;
+     margin-top: -25px;
+     float: right;
+     display: inline;
+  }
+}
+
 /*
 .password-strength, .password-strength-text { display: none; }
 input[type="password"]:focus + div > .password-strength,
